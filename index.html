@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>영상 편집 테스트 2</title>
+<title>영상 합치기 테스트</title>
 <style>
 :root {
   --red:#F04438; --blue:#3478F6; --green:#28A66A;
@@ -52,71 +52,57 @@ label { font-size:14px }
 .clip-head input { width:20px; height:20px }
 .clip-name { flex:1; min-width:0; overflow-wrap:anywhere }
 .clip video { width:100%; max-height:220px; margin-top:10px; background:#111 }
-.clip textarea { min-height:65px; resize:vertical }
+.clip textarea { min-height:60px; resize:vertical }
 #output {
   display:block; width:100%; background:#111;
   aspect-ratio:9/16; object-fit:contain; border-radius:12px;
 }
-canvas { display:none }
 .small { font-size:12px; color:#777 }
 </style>
 </head>
 <body>
 <main>
-  <h1>영상 편집 테스트 2</h1>
-  <p class="muted">영상 선택 · 순서 변경 · 자막 합성 · MP4 출력</p>
+  <h1>영상 합치기 테스트</h1>
+  <p class="muted">저장된 영상 불러오기 · 순서 변경 · 자막 · 합치기</p>
 
   <section class="card">
-    <h2>1. 저장된 영상 불러오기</h2>
-    <p class="muted">
-      이전 테스트 페이지에서 저장한 영상 목록을 불러와.
-      같은 사이트 주소와 같은 브라우저여야 해.
-    </p>
+    <h2>1. 저장된 영상</h2>
     <div id="loadStatus" class="status">저장소 연결 중...</div>
     <div class="buttons">
-      <button id="reloadBtn" class="blue">영상 목록 새로고침</button>
+      <button id="reloadBtn" class="blue">목록 새로고침</button>
     </div>
     <div id="clips"></div>
   </section>
 
   <section class="card">
-    <h2>2. 영상 편집 설정</h2>
-    <label for="title">전체 영상 제목 (선택)</label>
+    <h2>2. 편집 설정</h2>
+    <label for="title">전체 제목 (선택)</label>
     <input id="title" type="text" placeholder="예: 오늘의 일상">
 
-    <p class="muted">
-      아래 자막은 각 영상에 개별로 입력해.
-      비워 두면 해당 영상에는 자막이 나오지 않아.
-    </p>
+    <p class="muted">선택한 영상 순서대로 합쳐져. 각 영상에 자막을 따로 입력할 수 있어.</p>
+
     <label>
       <input id="audioToggle" type="checkbox" checked>
-      원본 영상 소리 포함
+      원본 소리 포함
     </label>
-    <p class="small">
-      영상의 소리는 최종 출력에 포함할지 선택하는 설정이야.
-    </p>
+
+    <p class="muted">테스트 출력은 480 × 854, 24fps로 진행해. 먼저 기능이 작동하는지 확인하기 위한 저해상도 설정이야.</p>
   </section>
 
   <section class="card">
-    <h2>3. 완성본 미리보기 및 출력</h2>
-    <canvas id="canvas" width="1080" height="1920"></canvas>
+    <h2>3. 합치기 및 미리보기</h2>
     <video id="output" controls playsinline></video>
-    <div id="exportStatus" class="status">
-      영상 2개 이상을 선택한 뒤 출력해 봐.
-    </div>
+    <div id="exportStatus" class="status">영상 2개 이상을 선택해 줘.</div>
     <div class="buttons">
-      <button id="exportBtn" class="primary">영상 합치기 시작</button>
-      <button id="downloadBtn" class="green" disabled>MP4 다운로드</button>
+      <button id="exportBtn" class="primary" disabled>영상 합치기 시작</button>
+      <button id="downloadBtn" class="green" disabled>완성 영상 다운로드</button>
     </div>
-    <p class="muted">
-      테스트용 출력은 1080 × 1920, 30fps를 목표로 해.
-      기기 성능과 브라우저 지원 형식에 따라 실패할 수 있어.
-      첫 테스트는 짧은 영상 2개로 진행해 줘.
-    </p>
   </section>
 </main>
 
 <script>
+"use strict";
+
 const $ = id => document.getElementById(id);
 const DB_NAME = "VideoCaptureTest";
 const STORE_NAME = "clips";
@@ -126,10 +112,18 @@ let records = [];
 let outputBlob = null;
 let outputUrl = null;
 let busy = false;
+let runToken = 0;
 
-const canvas = $("canvas");
+const canvas = document.createElement("canvas");
+canvas.width = 480;
+canvas.height = 854;
 const ctx = canvas.getContext("2d");
+
 const output = $("output");
+
+function setStatus(text) {
+  $("exportStatus").textContent = text;
+}
 
 function fmtSize(bytes) {
   if (bytes < 1024) return bytes + " B";
@@ -140,17 +134,22 @@ function fmtSize(bytes) {
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
+
     req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains(STORE_NAME)) {
-        req.result.createObjectStore(STORE_NAME, {
-          keyPath: "id", autoIncrement: true
+      const database = req.result;
+      if (!database.objectStoreNames.contains(STORE_NAME)) {
+        database.createObjectStore(STORE_NAME, {
+          keyPath: "id",
+          autoIncrement: true
         });
       }
     };
+
     req.onsuccess = () => {
       db = req.result;
       resolve();
     };
+
     req.onerror = () => reject(req.error);
   });
 }
@@ -167,36 +166,34 @@ function getAllClips() {
 function getSelected() {
   return [...document.querySelectorAll(".clip")]
     .filter(el => el.querySelector(".choose").checked)
-    .map(el => {
-      const id = Number(el.dataset.id);
-      return {
-        record: records.find(r => r.id === id),
-        subtitle: el.querySelector(".subtitle").value.trim()
-      };
-    })
+    .map(el => ({
+      record: records.find(r => r.id === Number(el.dataset.id)),
+      subtitle: el.querySelector(".subtitle").value.trim()
+    }))
     .filter(x => x.record);
 }
 
-function updateSelectionStatus() {
+function updateSelection() {
   const count = getSelected().length;
   $("exportBtn").disabled = busy || count < 2;
-  $("exportStatus").textContent =
-    count < 2
+  if (!busy) {
+    setStatus(count < 2
       ? "영상을 2개 이상 선택해 줘."
-      : `${count}개 영상이 선택됐어. 목록 순서대로 합쳐져.`;
+      : `${count}개 영상 선택됨. 목록 순서대로 합쳐져.`);
+  }
 }
 
 function renderList() {
   const root = $("clips");
   root.replaceChildren();
 
+  records.sort((a,b) => a.id - b.id);
+
   if (!records.length) {
-    root.textContent = "저장된 영상이 없어. 먼저 1단계 테스트에서 영상을 저장해 줘.";
-    updateSelectionStatus();
+    root.textContent = "저장된 영상이 없어. 이전 촬영 테스트에서 영상을 저장해 줘.";
+    updateSelection();
     return;
   }
-
-  records.sort((a,b) => a.id - b.id);
 
   records.forEach((r, index) => {
     const item = document.createElement("div");
@@ -209,28 +206,31 @@ function renderList() {
     const check = document.createElement("input");
     check.type = "checkbox";
     check.className = "choose";
-    check.setAttribute("aria-label", "영상 " + r.id + " 선택");
-    check.addEventListener("change", updateSelectionStatus);
+    check.setAttribute("aria-label", `영상 ${r.id} 선택`);
+    check.addEventListener("change", updateSelection);
 
     const name = document.createElement("div");
     name.className = "clip-name";
+
     const strong = document.createElement("strong");
     strong.textContent = `영상 ${r.id}`;
+
     const detail = document.createElement("div");
     detail.className = "small";
     detail.textContent = `${fmtSize(r.blob.size)} · ${r.mime || r.blob.type}`;
+
     name.append(strong, detail);
 
     const up = document.createElement("button");
     up.textContent = "↑";
-    up.disabled = index === 0;
     up.title = "위로 이동";
+    up.disabled = index === 0;
     up.addEventListener("click", () => moveItem(item, -1));
 
     const down = document.createElement("button");
     down.textContent = "↓";
-    down.disabled = index === records.length - 1;
     down.title = "아래로 이동";
+    down.disabled = index === records.length - 1;
     down.addEventListener("click", () => moveItem(item, 1));
 
     head.append(check, name, up, down);
@@ -243,36 +243,37 @@ function renderList() {
 
     const label = document.createElement("label");
     label.textContent = "이 영상에 표시할 자막";
-    const sub = document.createElement("textarea");
-    sub.className = "subtitle";
-    sub.placeholder = "예: 학교 가는 길";
-    sub.maxLength = 200;
 
-    item.append(head, vid, label, sub);
+    const subtitle = document.createElement("textarea");
+    subtitle.className = "subtitle";
+    subtitle.placeholder = "예: 학교 가는 길";
+    subtitle.maxLength = 200;
+
+    item.append(head, vid, label, subtitle);
     root.append(item);
   });
 
-  updateSelectionStatus();
+  updateSelection();
 }
 
 function moveItem(item, direction) {
-  const siblings = [...$("clips").children];
-  const i = siblings.indexOf(item);
+  const root = $("clips");
+  const items = [...root.children];
+  const i = items.indexOf(item);
   const j = i + direction;
-  if (j < 0 || j >= siblings.length) return;
 
-  if (direction < 0) {
-    $("clips").insertBefore(item, siblings[j]);
-  } else {
-    $("clips").insertBefore(siblings[j], item);
-  }
+  if (j < 0 || j >= items.length) return;
 
-  [...$("clips").children].forEach((el, i, arr) => {
+  if (direction < 0) root.insertBefore(item, items[j]);
+  else root.insertBefore(items[j], item);
+
+  [...root.children].forEach((el, idx, arr) => {
     const buttons = el.querySelectorAll(".clip-head button");
-    buttons[0].disabled = i === 0;
-    buttons[1].disabled = i === arr.length - 1;
+    buttons[0].disabled = idx === 0;
+    buttons[1].disabled = idx === arr.length - 1;
   });
-  updateSelectionStatus();
+
+  updateSelection();
 }
 
 async function reload() {
@@ -281,41 +282,47 @@ async function reload() {
     records = await getAllClips();
     $("loadStatus").textContent = `저장된 영상 ${records.length}개를 불러왔어.`;
     renderList();
-  } catch (e) {
+  } catch (error) {
     $("loadStatus").textContent =
-      "저장소를 열 수 없어: " + e.message +
-      " — 1단계와 같은 HTTPS 사이트인지 확인해 줘.";
+      "저장소 연결 실패: " + error.message +
+      ". 이전 테스트와 같은 사이트 주소인지 확인해 줘.";
   }
 }
 
 $("reloadBtn").addEventListener("click", reload);
 
 function drawCover(video) {
-  const cw = canvas.width, ch = canvas.height;
   ctx.fillStyle = "#111";
-  ctx.fillRect(0, 0, cw, ch);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const vw = video.videoWidth || 9;
-  const vh = video.videoHeight || 16;
-  const scale = Math.max(cw / vw, ch / vh);
-  const sw = cw / scale;
-  const sh = ch / scale;
-  const sx = (vw - sw) / 2;
-  const sy = (vh - sh) / 2;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return;
 
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
+  const scale = Math.max(canvas.width / vw, canvas.height / vh);
+  const sw = canvas.width / scale;
+  const sh = canvas.height / scale;
+
+  ctx.drawImage(
+    video,
+    (vw - sw) / 2, (vh - sh) / 2, sw, sh,
+    0, 0, canvas.width, canvas.height
+  );
 }
 
 function drawText(text, x, y, maxWidth, fontSize) {
+  ctx.save();
   ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  ctx.fillStyle = "#fff";
+  ctx.shadowColor = "rgba(0,0,0,.9)";
+  ctx.shadowBlur = 5;
 
-  const words = [...text];
   const lines = [];
   let line = "";
 
-  for (const char of words) {
+  for (const char of [...text]) {
     if (ctx.measureText(line + char).width > maxWidth && line) {
       lines.push(line);
       line = char;
@@ -325,19 +332,13 @@ function drawText(text, x, y, maxWidth, fontSize) {
   }
   if (line) lines.push(line);
 
-  const lineHeight = fontSize * 1.35;
-  const startY = y - ((lines.length - 1) * lineHeight) / 2;
-
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.85)";
-  ctx.shadowBlur = 7;
-  ctx.shadowOffsetX = 1;
-  ctx.shadowOffsetY = 2;
-  ctx.fillStyle = "#fff";
+  const height = fontSize * 1.35;
+  const start = y - (lines.length - 1) * height / 2;
 
   lines.forEach((part, i) => {
-    ctx.fillText(part, x, startY + i * lineHeight, maxWidth);
+    ctx.fillText(part, x, start + i * height, maxWidth);
   });
+
   ctx.restore();
 }
 
@@ -345,59 +346,83 @@ function drawFrame(video, subtitle, title) {
   drawCover(video);
 
   if (title) {
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.fillRect(0, 0, canvas.width, 170);
-    drawText(title, canvas.width / 2, 85, 920, 52);
+    ctx.fillStyle = "rgba(0,0,0,.3)";
+    ctx.fillRect(0, 0, canvas.width, 90);
+    drawText(title, canvas.width / 2, 45, 430, 25);
   }
 
   if (subtitle) {
-    ctx.fillStyle = "rgba(0,0,0,0.22)";
-    ctx.fillRect(0, 1280, canvas.width, 420);
-    drawText(subtitle, canvas.width / 2, 1490, 900, 62);
+    ctx.fillStyle = "rgba(0,0,0,.25)";
+    ctx.fillRect(0, 570, canvas.width, 180);
+    drawText(subtitle, canvas.width / 2, 660, 420, 29);
   }
 }
 
-function waitEvent(target, eventName, timeout = 15000) {
+function waitForEvent(target, successEvent, timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      clean();
-      reject(new Error(eventName + " 이벤트 대기 시간이 초과됐어."));
-    }, timeout);
+    let done = false;
 
-    function clean() {
+    const cleanup = () => {
       clearTimeout(timer);
-      target.removeEventListener(eventName, done);
-      target.removeEventListener("error", error);
-    }
-    function done() {
-      clean();
-      resolve();
-    }
-    function error() {
-      clean();
-      reject(new Error("영상 읽기에 실패했어."));
-    }
+      target.removeEventListener(successEvent, onSuccess);
+      target.removeEventListener("error", onError);
+    };
 
-    target.addEventListener(eventName, done, { once: true });
-    target.addEventListener("error", error, { once: true });
+    const finish = (error) => {
+      if (done) return;
+      done = true;
+      cleanup();
+      if (error) reject(error);
+      else resolve();
+    };
+
+    const onSuccess = () => finish();
+    const onError = () => finish(new Error("브라우저에서 영상을 읽지 못했어."));
+
+    const timer = setTimeout(
+      () => finish(new Error("영상 준비 시간 초과. 다시 시도해 줘.")),
+      timeoutMs
+    );
+
+    target.addEventListener(successEvent, onSuccess);
+    target.addEventListener("error", onError);
   });
 }
 
-async function waitForVideo(video, blob) {
+async function loadSourceVideo(video, blob) {
   video.pause();
+
+  if (video._testUrl) URL.revokeObjectURL(video._testUrl);
+
   video.removeAttribute("src");
   video.load();
 
-  video.src = URL.createObjectURL(blob);
-  await waitEvent(video, "loadedmetadata");
-  if (video.readyState < 2) await waitEvent(video, "loadeddata");
-  return video;
+  const url = URL.createObjectURL(blob);
+  video._testUrl = url;
+
+  const loaded = waitForEvent(video, "loadeddata", 12000);
+  video.src = url;
+  video.load();
+
+  if (video.readyState < 2) {
+    await loaded;
+  } else {
+    // 준비가 이미 완료된 경우에도 대기 Promise를 정리하기 위해
+    // loadeddata 이벤트가 발생하지 않을 수 있으므로 별도 대기를 하지 않음.
+    loaded.catch(() => {});
+  }
+
+  if (video.readyState < 2) {
+    throw new Error("영상 데이터가 준비되지 않았어.");
+  }
 }
 
 function waitForRecorderStop(recorder) {
   return new Promise((resolve, reject) => {
-    recorder.addEventListener("stop", resolve, { once: true });
-    recorder.addEventListener("error", () => reject(new Error("인코딩 중 녹화 오류가 발생했어.")), { once: true });
+    recorder.addEventListener("stop", resolve, { once:true });
+    recorder.addEventListener("error", () => {
+      reject(new Error("출력 인코딩 도중 오류가 발생했어."));
+    }, { once:true });
   });
 }
 
@@ -411,166 +436,184 @@ async function exportVideo() {
   }
 
   if (!window.MediaRecorder || !canvas.captureStream) {
-    alert("이 브라우저에서는 영상 출력 기능을 지원하지 않아.");
+    alert("이 브라우저는 영상 출력 기능을 지원하지 않아.");
     return;
   }
 
-  const types = [
+  const mimeTypes = [
     "video/mp4;codecs=avc1.42E01E",
     "video/mp4"
   ];
-  const mime = types.find(t => MediaRecorder.isTypeSupported(t));
+
+  const mime = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
 
   if (!mime) {
-    alert("이 브라우저에서는 MP4 녹화를 지원하지 않아. 현재 기기에서 MP4 내보내기가 가능한지 확인할 수 없어.");
+    alert("이 브라우저에서 MP4 녹화가 지원되지 않아.");
     return;
   }
 
   busy = true;
+  const token = ++runToken;
   $("exportBtn").disabled = true;
   $("downloadBtn").disabled = true;
-  $("exportStatus").textContent = "출력을 준비하고 있어... 화면을 끄지 말고 기다려 줘.";
+  outputBlob = null;
 
-  let sourceVideo = document.createElement("video");
-  sourceVideo.muted = true;
-  sourceVideo.playsInline = true;
-  sourceVideo.preload = "auto";
+  let source = document.createElement("video");
+  source.playsInline = true;
+  source.preload = "auto";
+  source.muted = true;
 
-  let audioContext = null;
-  let audioDestination = null;
-  let audioSource = null;
-  let canvasStream = null;
+  let stream = null;
   let recorder = null;
-  let raf = 0;
+  let audioContext = null;
+  let audioSource = null;
+  let audioDestination = null;
+  let frameId = 0;
   let cancelled = false;
   const chunks = [];
-  let audioEnabled = $("audioToggle").checked;
 
   try {
-    // Canvas에 자막과 영상을 합성한 뒤 영상 스트림으로 캡처
-    canvasStream = canvas.captureStream(30);
+    stream = canvas.captureStream(24);
 
-    if (audioEnabled) {
+    if ($("audioToggle").checked) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
       if (AudioCtx) {
         audioContext = new AudioCtx();
         await audioContext.resume();
+
         audioDestination = audioContext.createMediaStreamDestination();
-        audioSource = audioContext.createMediaElementSource(sourceVideo);
+        audioSource = audioContext.createMediaElementSource(source);
         audioSource.connect(audioDestination);
         audioSource.connect(audioContext.destination);
 
         const track = audioDestination.stream.getAudioTracks()[0];
-        if (track) canvasStream.addTrack(track);
-      } else {
-        audioEnabled = false;
-        $("exportStatus").textContent =
-          "오디오 기능을 사용할 수 없어 무음으로 출력할게.";
+        if (track) stream.addTrack(track);
       }
     }
 
-    recorder = new MediaRecorder(canvasStream, {
+    recorder = new MediaRecorder(stream, {
       mimeType: mime,
-      videoBitsPerSecond: 8000000
+      videoBitsPerSecond: 1500000
     });
 
-    recorder.ondataavailable = e => {
-      if (e.data && e.data.size) chunks.push(e.data);
+    recorder.ondataavailable = event => {
+      if (event.data && event.data.size) chunks.push(event.data);
     };
 
     const stopped = waitForRecorderStop(recorder);
-    recorder.start(1000);
+    recorder.start(500);
 
     const title = $("title").value.trim();
 
-    function renderLoop(subtitle) {
-      if (cancelled) return;
-      if (sourceVideo.readyState >= 2) {
-        drawFrame(sourceVideo, subtitle, title);
-      }
-      raf = requestAnimationFrame(() => renderLoop(subtitle));
+    function render(subtitle) {
+      if (cancelled || token !== runToken) return;
+      if (source.readyState >= 2) drawFrame(source, subtitle, title);
+      frameId = requestAnimationFrame(() => render(subtitle));
     }
 
     for (let i = 0; i < selected.length; i++) {
       const entry = selected[i];
-      $("exportStatus").textContent =
-        `영상 ${i + 1}/${selected.length} 처리 중...`;
 
-      await waitForVideo(sourceVideo, entry.record.blob);
+      setStatus(`영상 ${i + 1}/${selected.length}: 파일 불러오는 중...`);
+      await loadSourceVideo(source, entry.record.blob);
 
-      sourceVideo.currentTime = 0;
-      await new Promise((resolve, reject) => {
-        if (sourceVideo.readyState >= 2) resolve();
-        else {
-          sourceVideo.addEventListener("loadeddata", resolve, { once: true });
-          sourceVideo.addEventListener("error", () => reject(new Error("영상 데이터를 읽을 수 없어.")), { once: true });
-        }
-      });
+      setStatus(`영상 ${i + 1}/${selected.length}: 재생 준비 중...`);
 
-      if (audioEnabled) {
-        sourceVideo.muted = false;
-        sourceVideo.volume = 1;
-      } else {
-        sourceVideo.muted = true;
+      source.currentTime = 0;
+      if (source.readyState < 2) {
+        await waitForEvent(source, "loadeddata", 12000);
       }
 
-      drawFrame(sourceVideo, entry.subtitle, title);
-      cancelAnimationFrame(raf);
-      renderLoop(entry.subtitle);
+      source.muted = !$("audioToggle").checked;
+      source.volume = 1;
 
-      await sourceVideo.play();
+      drawFrame(source, entry.subtitle, title);
+      cancelAnimationFrame(frameId);
+      render(entry.subtitle);
+
+      await source.play();
+
+      setStatus(`영상 ${i + 1}/${selected.length}: 재생 및 합성 중...`);
 
       await new Promise((resolve, reject) => {
-        sourceVideo.onended = () => resolve();
-        sourceVideo.onerror = () => reject(new Error("영상 재생 중 오류가 발생했어."));
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error("영상 재생이 너무 오래 걸려 중단했어."));
+        }, 45000);
+
+        const onEnded = () => {
+          cleanup();
+          resolve();
+        };
+
+        const onError = () => {
+          cleanup();
+          reject(new Error("영상 재생 도중 오류가 발생했어."));
+        };
+
+        function cleanup() {
+          clearTimeout(timer);
+          source.removeEventListener("ended", onEnded);
+          source.removeEventListener("error", onError);
+        }
+
+        source.addEventListener("ended", onEnded);
+        source.addEventListener("error", onError);
       });
 
-      sourceVideo.pause();
+      source.pause();
     }
 
     cancelled = true;
-    cancelAnimationFrame(raf);
-    drawFrame(sourceVideo, "", title);
+    cancelAnimationFrame(frameId);
 
+    // 마지막 프레임을 캔버스에 그린 뒤 녹화를 종료함
+    drawFrame(source, "", title);
+
+    await new Promise(resolve => setTimeout(resolve, 150));
     recorder.stop();
     await stopped;
 
+    if (!chunks.length) throw new Error("출력된 영상 데이터가 없어.");
+
     outputBlob = new Blob(chunks, { type: recorder.mimeType || mime });
 
-    if (!outputBlob.size) {
-      throw new Error("완성된 영상 파일이 비어 있어.");
-    }
+    if (!outputBlob.size) throw new Error("출력 파일이 비어 있어.");
 
     if (outputUrl) URL.revokeObjectURL(outputUrl);
     outputUrl = URL.createObjectURL(outputBlob);
+
     output.src = outputUrl;
     output.load();
 
-    $("exportStatus").textContent =
-      `출력 완료! ${fmtSize(outputBlob.size)} · ${outputBlob.type}. ` +
-      "미리보기를 재생해서 영상과 자막을 확인해 줘.";
+    setStatus(
+      `출력 완료 · ${fmtSize(outputBlob.size)} · ${outputBlob.type}. ` +
+      "미리보기를 확인해 줘."
+    );
 
     $("downloadBtn").disabled = false;
 
   } catch (error) {
     cancelled = true;
-    cancelAnimationFrame(raf);
+    cancelAnimationFrame(frameId);
 
     if (recorder && recorder.state !== "inactive") {
       try { recorder.stop(); } catch {}
     }
 
-    $("exportStatus").textContent =
-      "출력 실패: " + error.message +
-      " 짧은 영상 2개로 다시 시도해 줘.";
+    setStatus("실패: " + error.message);
   } finally {
     busy = false;
     $("exportBtn").disabled = getSelected().length < 2;
-    sourceVideo.pause();
-    sourceVideo.removeAttribute("src");
-    sourceVideo.load();
 
-    if (canvasStream) canvasStream.getTracks().forEach(t => t.stop());
+    source.pause();
+    if (source._testUrl) URL.revokeObjectURL(source._testUrl);
+    source.removeAttribute("src");
+    source.load();
+
+    if (stream) stream.getTracks().forEach(track => track.stop());
+
     if (audioContext) {
       try { await audioContext.close(); } catch {}
     }
@@ -583,7 +626,7 @@ $("downloadBtn").addEventListener("click", () => {
   if (!outputBlob || !outputBlob.size) return;
 
   if (!outputBlob.type.toLowerCase().includes("mp4")) {
-    alert("출력 형식이 MP4가 아니야: " + outputBlob.type);
+    alert("결과 파일 형식이 MP4가 아니야: " + outputBlob.type);
     return;
   }
 
@@ -595,10 +638,11 @@ $("downloadBtn").addEventListener("click", () => {
   a.click();
   a.remove();
 
-  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 });
 
 window.addEventListener("beforeunload", () => {
+  runToken++;
   if (outputUrl) URL.revokeObjectURL(outputUrl);
 });
 
