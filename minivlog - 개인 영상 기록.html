@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>minivlog</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              red: '#FF3B30',
+              yellow: '#FFCC00',
+              green: '#34C759',
+              blue: '#007AFF',
+              dark: '#1C1C1E',
+              gray: '#F2F2F7',
+              border: '#E5E5EA'
+            }
+          },
+          aspectRatio: {
+            '9/16': '9 / 16',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      background-color: #F9F9FB;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="text-slate-900 antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- Main View Frame -->
+  <div id="app-container" class="w-full max-w-md mx-auto min-h-screen bg-white shadow-sm flex flex-col relative pb-20 sm:pb-0">
+    
+    <!-- HEADER -->
+    <header id="main-header" class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-brand-border px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <button id="header-back-btn" onclick="app.navigateBack()" class="hidden p-1.5 -ml-1.5 text-slate-700 hover:bg-slate-100 rounded-full transition-colors">
+          <i data-lucide="chevron-left" class="w-6 h-6"></i>
+        </button>
+        <h1 id="header-title" class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full bg-brand-red inline-block"></span>
+          <span>minivlog</span>
+        </h1>
+      </div>
+      <div id="header-actions" class="flex items-center space-x-1">
+        <button onclick="app.navigateTo('settings')" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors" title="설정">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- SCREEN VIEWS -->
+    <main class="flex-1 flex flex-col relative overflow-x-hidden">
+
+      <!-- View A: Home Screen -->
+      <section id="view-home" class="view-screen p-4 flex-1 flex flex-col">
+        
+        <!-- Top Hero: Prominent Circular Shooting Button -->
+        <div class="py-6 flex flex-col items-center justify-center border-b border-brand-border mb-5">
+          <button onclick="app.openProjectSelectForShoot()" class="w-32 h-32 rounded-full bg-red-50 hover:bg-red-100 border-4 border-brand-red shadow-lg shadow-red-500/10 flex flex-col items-center justify-center transition-transform active:scale-95 group">
+            <div class="w-10 h-10 rounded-full bg-brand-red text-white flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+              <i data-lucide="camera" class="w-5 h-5"></i>
+            </div>
+            <span class="text-xs font-extrabold text-brand-red tracking-tight">촬영하기</span>
+          </button>
+        </div>
+
+        <!-- Lower Section: My Projects -->
+        <div class="flex items-center justify-between mb-3.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-brand-blue"></span>
+            <h2 class="text-sm font-bold text-slate-900">내 프로젝트</h2>
+          </div>
+          <button onclick="app.openNewProjectModal()" class="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-blue text-white text-xs font-bold rounded-full transition-all active:scale-95">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>프로젝트 만들기</span>
+          </button>
+        </div>
+
+        <!-- Project Grid -->
+        <div id="project-list-grid" class="grid grid-cols-2 gap-3">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="project-empty-state" class="hidden flex-1 flex flex-col items-center justify-center py-12 text-center">
+          <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-2">
+            <i data-lucide="folder-plus" class="w-6 h-6"></i>
+          </div>
+          <p class="text-xs font-medium text-slate-500 mb-3">생성된 프로젝트가 없습니다.</p>
+          <button onclick="app.openNewProjectModal()" class="px-4 py-2 bg-brand-blue text-white text-xs font-bold rounded-lg shadow-sm">
+            프로젝트 만들기
+          </button>
+        </div>
+      </section>
+
+      <!-- View C: Project Screen -->
+      <section id="view-project" class="view-screen hidden p-4 flex-1 flex flex-col">
+        <!-- Project Info Bar -->
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-brand-border">
+          <div>
+            <span class="text-[10px] font-bold text-brand-blue bg-blue-50 px-2 py-0.5 rounded-full">프로젝트</span>
+            <h2 id="project-view-name" class="text-base font-bold text-slate-900 mt-0.5">프로젝트 명</h2>
+            <p id="project-view-updated" class="text-[10px] text-slate-400">수정시각: -</p>
+          </div>
+          <button onclick="app.openProjectMenu()" class="p-2 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100">
+            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Video Gallery Grid -->
+        <div id="project-video-grid" class="grid grid-cols-3 gap-2 mb-20">
+          <!-- Video items rendered here -->
+        </div>
+
+        <!-- Empty Video State -->
+        <div id="project-video-empty" class="hidden flex-1 flex flex-col items-center justify-center py-12 text-center my-auto">
+          <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-2">
+            <i data-lucide="clapperboard" class="w-6 h-6"></i>
+          </div>
+          <p class="text-xs font-medium text-slate-500">저장된 영상이 없습니다.</p>
+        </div>
+
+        <!-- Fixed Action Bar -->
+        <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 bg-white/95 backdrop-blur-md border-t border-brand-border flex gap-2 z-20">
+          <button onclick="app.navigateTo('camera')" class="flex-1 py-3 bg-brand-red text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>촬영하기</span>
+          </button>
+          <button onclick="app.navigateTo('editor')" class="flex-1 py-3 bg-brand-dark text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition">
+            <i data-lucide="wand2" class="w-4 h-4"></i>
+            <span>완성본 만들기</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- View D: Video Play / Player View -->
+      <section id="view-player" class="view-screen hidden p-4 flex-1 flex flex-col">
+        <div class="w-full bg-slate-950 rounded-2xl overflow-hidden aspect-[9/16] relative flex flex-col items-center justify-center shadow-inner mb-4">
+          <i data-lucide="play-circle" class="w-14 h-14 text-white/50 mb-2"></i>
+          <span class="text-white/80 text-xs font-medium">비디오 플레이어 미리보기</span>
+          
+          <div class="absolute bottom-3 left-3 right-3 bg-black/60 backdrop-blur-md p-3 rounded-xl border border-white/10 text-white text-xs">
+            <div class="flex items-center justify-between">
+              <span id="player-video-title" class="font-bold">클립 #1</span>
+              <span id="player-video-time" class="text-[10px] text-slate-300">촬영시각: --:--</span>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="app.navigateTo('editor')" class="w-full py-3 bg-brand-blue text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm">
+          <i data-lucide="edit-3" class="w-4 h-4"></i>
+          <span>이 영상 편집하기</span>
+        </button>
+      </section>
+
+      <!-- View E: Camera View -->
+      <section id="view-camera" class="view-screen hidden p-4 flex-1 flex flex-col bg-slate-950 text-white">
+        <!-- Alert Banner -->
+        <div class="bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] px-3 py-2 rounded-xl mb-3 flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-amber-400"></i>
+          <span>실제 카메라 연결 및 녹화 기능은 준비 중입니다.</span>
+        </div>
+
+        <!-- Camera Viewport -->
+        <div class="w-full flex-1 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden aspect-[9/16] mb-4">
+          <div class="w-16 h-16 rounded-full border border-dashed border-slate-700 flex items-center justify-center mb-2">
+            <i data-lucide="camera" class="w-6 h-6 text-slate-500"></i>
+          </div>
+          <span class="text-slate-500 text-xs">카메라 미리보기</span>
+        </div>
+
+        <!-- Duration Selector UI -->
+        <div class="bg-slate-900 p-1 rounded-xl flex justify-between gap-1 mb-6 border border-slate-800">
+          <button onclick="app.selectShootDuration('free')" id="duration-free" class="duration-btn flex-1 py-1.5 text-[11px] font-semibold rounded-lg text-slate-400">자유 촬영</button>
+          <button onclick="app.selectShootDuration('3s')" id="duration-3s" class="duration-btn flex-1 py-1.5 text-[11px] font-semibold rounded-lg text-slate-400">3초</button>
+          <button onclick="app.selectShootDuration('5s')" id="duration-5s" class="duration-btn flex-1 py-1.5 text-[11px] font-semibold rounded-lg bg-brand-red text-white">5초</button>
+          <button onclick="app.selectShootDuration('10s')" id="duration-10s" class="duration-btn flex-1 py-1.5 text-[11px] font-semibold rounded-lg text-slate-400">10초</button>
+        </div>
+
+        <!-- Shutter Button -->
+        <div class="flex items-center justify-center pb-4">
+          <button onclick="app.triggerMockCapture()" class="w-16 h-16 rounded-full border-4 border-white p-1 flex items-center justify-center active:scale-90 transition">
+            <div class="w-12 h-12 bg-brand-red rounded-full"></div>
+          </button>
+        </div>
+      </section>
+
+      <!-- View F: Video Editor View -->
+      <section id="view-editor" class="view-screen hidden p-4 flex-1 flex flex-col space-y-3 pb-24">
+        
+        <!-- Preview Area -->
+        <div class="bg-slate-900 rounded-xl p-3 text-white">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-slate-300">미리보기</span>
+            <span class="text-[10px] text-slate-400">9:16 비율</span>
+          </div>
+          <div class="w-full bg-slate-950 aspect-[9/16] rounded-lg border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
+            <i data-lucide="film" class="w-8 h-8 text-slate-600 mb-1"></i>
+            <span class="text-xs text-slate-500">편집 타임라인</span>
+            
+            <div id="editor-preview-subtitle-overlay" class="absolute bottom-6 left-4 right-4 bg-brand-yellow/90 text-slate-900 text-xs px-2.5 py-1.5 rounded text-center font-bold">
+              자막 미리보기
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 1: Clip List -->
+        <details class="bg-white rounded-xl border border-brand-border overflow-hidden group" open>
+          <summary class="px-3.5 py-3 text-xs font-bold text-slate-800 bg-slate-50 flex justify-between items-center cursor-pointer">
+            <span>편집할 영상 및 순서</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+          </summary>
+          <div class="p-3">
+            <div class="p-2 bg-slate-50 border border-brand-border rounded-lg flex items-center justify-between text-xs">
+              <span class="font-medium">클립 #1</span>
+              <span class="text-[10px] text-slate-400">00:05</span>
+            </div>
+          </div>
+        </details>
+
+        <!-- Accordion 2: Title Setting -->
+        <details class="bg-white rounded-xl border border-brand-border overflow-hidden group">
+          <summary class="px-3.5 py-3 text-xs font-bold text-slate-800 bg-slate-50 flex justify-between items-center cursor-pointer">
+            <span>전체 제목 설정</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+          </summary>
+          <div class="p-3">
+            <input type="text" id="editor-title-input" placeholder="제목을 입력하세요" class="w-full border border-brand-border rounded-lg p-2 text-xs focus:outline-none focus:border-brand-blue">
+          </div>
+        </details>
+
+        <!-- Accordion 3: Subtitle Settings -->
+        <details class="bg-white rounded-xl border border-brand-border overflow-hidden group">
+          <summary class="px-3.5 py-3 text-xs font-bold text-slate-800 bg-slate-50 flex justify-between items-center cursor-pointer">
+            <span>자막 설정</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+          </summary>
+          <div class="p-3">
+            <textarea id="editor-subtitle-input" oninput="app.updateSubtitlePreview(this.value)" rows="2" placeholder="자막 문구를 입력하세요" class="w-full border border-brand-border rounded-lg p-2 text-xs focus:outline-none focus:border-brand-blue"></textarea>
+          </div>
+        </details>
+
+        <!-- Accordion 4: Audio Settings -->
+        <details class="bg-white rounded-xl border border-brand-border overflow-hidden group">
+          <summary class="px-3.5 py-3 text-xs font-bold text-slate-800 bg-slate-50 flex justify-between items-center cursor-pointer">
+            <span>원본 소리 설정</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+          </summary>
+          <div class="p-3 flex items-center justify-between text-xs">
+            <span class="text-slate-700">원본 음성 유효화</span>
+            <input type="checkbox" checked class="accent-brand-blue w-4 h-4">
+          </div>
+        </details>
+
+        <!-- Accordion 5: Title Card & Export -->
+        <details class="bg-white rounded-xl border border-brand-border overflow-hidden group">
+          <summary class="px-3.5 py-3 text-xs font-bold text-slate-800 bg-slate-50 flex justify-between items-center cursor-pointer">
+            <span>타이틀 및 출력 설정</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+          </summary>
+          <div class="p-3 space-y-2 text-xs">
+            <select class="w-full border border-brand-border rounded-lg p-2 bg-white">
+              <option>1080p (FHD)</option>
+              <option>720p (HD)</option>
+            </select>
+          </div>
+        </details>
+
+        <!-- Merge Button -->
+        <div class="pt-2">
+          <button onclick="app.processMergeVideo()" class="w-full py-3 bg-brand-green hover:bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm">
+            <i data-lucide="merge" class="w-4 h-4"></i>
+            <span>영상 합치기</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- View G: Export / Final Video View -->
+      <section id="view-export" class="view-screen hidden p-4 flex-1 flex flex-col space-y-3">
+        <div class="w-full bg-slate-900 rounded-2xl aspect-[9/16] flex flex-col items-center justify-center text-white relative">
+          <i data-lucide="check-circle-2" class="w-12 h-12 text-brand-green mb-2"></i>
+          <span class="text-xs font-bold">완성본 생성 완료</span>
+        </div>
+
+        <button onclick="app.showNotice('다운로드 기능은 준비 중입니다.')" class="w-full py-3 bg-brand-green text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>다운로드</span>
+        </button>
+
+        <div class="flex gap-2">
+          <button onclick="app.navigateTo('editor')" class="flex-1 py-2.5 bg-slate-100 text-slate-800 text-xs font-bold rounded-xl">
+            다시 편집
+          </button>
+          <button onclick="app.navigateTo('project')" class="flex-1 py-2.5 bg-brand-dark text-white text-xs font-bold rounded-xl">
+            프로젝트로 이동
+          </button>
+        </div>
+      </section>
+
+      <!-- View H: Settings View -->
+      <section id="view-settings" class="view-screen hidden p-4 flex-1 flex flex-col space-y-4 text-xs">
+        <div class="bg-white p-4 rounded-xl border border-brand-border space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-extrabold text-sm text-slate-900">minivlog</span>
+            <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-mono">v1.0</span>
+          </div>
+          <p class="text-slate-500 text-[11px]">개인 모바일 영상 기록 애플리케이션</p>
+        </div>
+
+        <!-- Storage Warning -->
+        <div class="bg-amber-50 border border-amber-200/80 p-3.5 rounded-xl text-amber-900 space-y-1">
+          <div class="flex items-center gap-1.5 font-bold">
+            <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600"></i>
+            <span>저장 공간 안내</span>
+          </div>
+          <p class="text-[11px] text-amber-800 leading-normal">
+            데이터는 사용 중인 브라우저 내부에 저장됩니다. 캐시를 삭제하거나 기기를 변경하면 프로젝트 데이터가 삭제될 수 있습니다.
+          </p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Modal: Select Project for Recording -->
+  <div id="modal-select-project-shoot" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden" onclick="if(event.target===this)app.closeModals()">
+    <div class="bg-white w-full max-w-md sm:max-w-xs rounded-t-2xl sm:rounded-2xl p-4 shadow-xl border border-brand-border flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-brand-border mb-3">
+        <h3 class="text-xs font-bold text-slate-900">촬영할 프로젝트 선택</h3>
+        <button onclick="app.closeModals()" class="text-slate-400 p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div id="select-project-list" class="space-y-1.5 overflow-y-auto max-h-56 pr-1 no-scrollbar mb-3">
+        <!-- Dynamically Populated -->
+      </div>
+
+      <button onclick="app.closeModals(); app.openNewProjectModal();" class="w-full py-2.5 bg-slate-50 text-brand-blue text-xs font-bold rounded-xl border border-dashed border-brand-border flex items-center justify-center gap-1">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span>새 프로젝트 만들고 촬영하기</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: New / Rename Project -->
+  <div id="modal-project-form" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-xs rounded-2xl p-4 shadow-xl border border-brand-border">
+      <h3 id="modal-project-title" class="text-xs font-bold text-slate-900 mb-3">새 프로젝트</h3>
+      
+      <div class="mb-4">
+        <input type="text" id="project-name-input" placeholder="프로젝트 이름" class="w-full border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue focus:outline-none">
+        <p id="project-name-error" class="text-[10px] text-brand-red mt-1 hidden">이름을 입력하세요.</p>
+      </div>
+
+      <div class="flex gap-2 justify-end">
+        <button onclick="app.closeModals()" class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg">취소</button>
+        <button onclick="app.submitProjectForm()" class="px-3 py-1.5 bg-brand-blue text-white text-xs font-bold rounded-lg">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Delete Confirmation -->
+  <div id="modal-delete-confirm" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-xs rounded-2xl p-4 shadow-xl border border-brand-border">
+      <div class="w-8 h-8 bg-red-100 text-brand-red rounded-full flex items-center justify-center mb-2">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+      </div>
+      <h3 class="text-xs font-bold text-slate-900 mb-1">프로젝트 삭제</h3>
+      <p class="text-[11px] text-slate-600 mb-4">
+        프로젝트와 포함된 모든 영상 데이터가 삭제됩니다. 계속하시겠습니까?
+      </p>
+
+      <div class="flex gap-2 justify-end">
+        <button onclick="app.closeModals()" class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg">취소</button>
+        <button onclick="app.confirmDeleteProject()" class="px-3 py-1.5 bg-brand-red text-white text-xs font-bold rounded-lg">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Project Actions Menu -->
+  <div id="modal-project-menu" class="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center hidden" onclick="if(event.target===this)app.closeModals()">
+    <div class="bg-white w-full max-w-md sm:max-w-xs rounded-t-2xl sm:rounded-2xl p-4 shadow-xl border border-brand-border space-y-1">
+      <button onclick="app.openRenameProjectModal()" class="w-full text-left p-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
+        <i data-lucide="edit-2" class="w-4 h-4 text-slate-400"></i>
+        <span>이름 변경</span>
+      </button>
+      <button onclick="app.openDeleteConfirmModal()" class="w-full text-left p-2.5 text-xs font-bold text-brand-red hover:bg-red-50 rounded-lg flex items-center gap-2">
+        <i data-lucide="trash-2" class="w-4 h-4 text-brand-red"></i>
+        <span>삭제</span>
+      </button>
+      <button onclick="app.closeModals()" class="w-full text-center p-2 text-xs text-slate-400 hover:bg-slate-50 rounded-lg border-t border-brand-border mt-1">
+        닫기
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Bar -->
+  <div id="toast-message" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2 rounded-full shadow-lg z-50 transition-all opacity-0 pointer-events-none flex items-center gap-2">
+    <i data-lucide="info" class="w-4 h-4 text-brand-yellow"></i>
+    <span id="toast-text">알림</span>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    class MinivlogApp {
+      constructor() {
+        this.STORAGE_KEY = 'MINIVLOG_PROJECTS_META';
+        this.projects = [];
+        this.currentProjectId = null;
+        this.currentView = 'home';
+        this.navigationStack = ['home'];
+
+        this.isEditing = false;
+        this.selectedShootDuration = '5s';
+
+        this.dom = {
+          headerTitle: document.getElementById('header-title'),
+          headerBackBtn: document.getElementById('header-back-btn'),
+          projectListGrid: document.getElementById('project-list-grid'),
+          projectEmptyState: document.getElementById('project-empty-state'),
+          projectViewName: document.getElementById('project-view-name'),
+          projectViewUpdated: document.getElementById('project-view-updated'),
+          projectVideoGrid: document.getElementById('project-video-grid'),
+          projectVideoEmpty: document.getElementById('project-video-empty'),
+          projectNameInput: document.getElementById('project-name-input'),
+          projectNameError: document.getElementById('project-name-error'),
+          modalProjectForm: document.getElementById('modal-project-form'),
+          modalProjectTitle: document.getElementById('modal-project-title'),
+          modalDeleteConfirm: document.getElementById('modal-delete-confirm'),
+          modalProjectMenu: document.getElementById('modal-project-menu'),
+          modalSelectProjectShoot: document.getElementById('modal-select-project-shoot'),
+          selectProjectList: document.getElementById('select-project-list'),
+          toastMessage: document.getElementById('toast-message'),
+          toastText: document.getElementById('toast-text'),
+          editorSubtitleOverlay: document.getElementById('editor-preview-subtitle-overlay')
+        };
+
+        this.init();
+      }
+
+      init() {
+        this.loadProjects();
+        this.renderProjectsList();
+        this.setupHistoryListener();
+        lucide.createIcons();
+      }
+
+      loadProjects() {
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          this.projects = raw ? JSON.parse(raw) : [];
+        } catch (e) {
+          this.projects = [];
+          this.showNotice('저장소 로드 오류');
+        }
+      }
+
+      saveProjects() {
+        try {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.projects));
+        } catch (e) {
+          this.showNotice('저장 공간 오류가 발생했습니다.');
+        }
+      }
+
+      navigateTo(targetView) {
+        if (this.currentView === targetView) return;
+
+        document.querySelectorAll('.view-screen').forEach(el => el.classList.add('hidden'));
+        
+        const nextScreen = document.getElementById(`view-${targetView}`);
+        if (nextScreen) {
+          nextScreen.classList.remove('hidden');
+          this.currentView = targetView;
+          this.navigationStack.push(targetView);
+          this.updateHeaderUI();
+          window.scrollTo(0, 0);
+        }
+      }
+
+      navigateBack() {
+        if (this.navigationStack.length > 1) {
+          this.navigationStack.pop();
+          const prevView = this.navigationStack[this.navigationStack.length - 1];
+          
+          document.querySelectorAll('.view-screen').forEach(el => el.classList.add('hidden'));
+          const targetScreen = document.getElementById(`view-${prevView}`);
+          if (targetScreen) {
+            targetScreen.classList.remove('hidden');
+            this.currentView = prevView;
+            this.updateHeaderUI();
+          }
+        }
+      }
+
+      setupHistoryListener() {
+        window.onpopstate = () => {
+          if (this.navigationStack.length > 1) {
+            this.navigateBack();
+          }
+        };
+      }
+
+      updateHeaderUI() {
+        if (this.currentView === 'home') {
+          this.dom.headerBackBtn.classList.add('hidden');
+        } else {
+          this.dom.headerBackBtn.classList.remove('hidden');
+        }
+        lucide.createIcons();
+      }
+
+      openProjectSelectForShoot() {
+        if (this.projects.length === 0) {
+          this.openNewProjectModal();
+          this.showNotice('촬영 전 프로젝트를 생성해주세요.');
+          return;
+        }
+
+        this.dom.selectProjectList.innerHTML = this.projects.map(proj => `
+          <button onclick="app.selectProjectAndShoot('${proj.id}')" class="w-full text-left p-2.5 rounded-xl border border-brand-border hover:border-brand-blue flex items-center justify-between group transition-all">
+            <span class="text-xs font-bold text-slate-800 truncate">${this.escapeHtml(proj.name)}</span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 shrink-0"></i>
+          </button>
+        `).join('');
+
+        lucide.createIcons();
+        this.dom.modalSelectProjectShoot.classList.remove('hidden');
+      }
+
+      selectProjectAndShoot(projectId) {
+        this.currentProjectId = projectId;
+        this.closeModals();
+        this.navigateTo('camera');
+      }
+
+      renderProjectsList() {
+        this.projects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+        if (this.projects.length === 0) {
+          this.dom.projectListGrid.classList.add('hidden');
+          this.dom.projectEmptyState.classList.remove('hidden');
+          return;
+        }
+
+        this.dom.projectEmptyState.classList.add('hidden');
+        this.dom.projectListGrid.classList.remove('hidden');
+
+        this.dom.projectListGrid.innerHTML = this.projects.map(proj => {
+          return `
+            <div onclick="app.openProject('${proj.id}')" class="bg-white border border-brand-border rounded-xl p-2.5 flex flex-col justify-between cursor-pointer active:scale-95 transition-all">
+              <div class="aspect-video w-full bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 mb-2 relative overflow-hidden">
+                <i data-lucide="video" class="w-5 h-5 text-slate-300"></i>
+                <span class="absolute top-1 right-1 bg-brand-green text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+              </div>
+              <div>
+                <h3 class="font-bold text-xs text-slate-900 truncate">${this.escapeHtml(proj.name)}</h3>
+                <p class="text-[9px] text-slate-400 mt-0.5">${this.formatRelativeTime(proj.updatedAt)}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        lucide.createIcons();
+      }
+
+      openProject(projectId) {
+        const proj = this.projects.find(p => p.id === projectId);
+        if (!proj) return;
+
+        this.currentProjectId = projectId;
+        this.dom.projectViewName.innerText = proj.name;
+        this.dom.projectViewUpdated.innerText = `수정시각: ${this.formatRelativeTime(proj.updatedAt)}`;
+        
+        this.dom.projectVideoGrid.innerHTML = '';
+        this.dom.projectVideoEmpty.classList.remove('hidden');
+
+        this.navigateTo('project');
+      }
+
+      openNewProjectModal() {
+        this.isEditing = false;
+        this.dom.modalProjectTitle.innerText = '프로젝트 만들기';
+        this.dom.projectNameInput.value = '';
+        this.dom.projectNameError.classList.add('hidden');
+        this.dom.modalProjectForm.classList.remove('hidden');
+        setTimeout(() => this.dom.projectNameInput.focus(), 100);
+      }
+
+      openRenameProjectModal() {
+        this.closeModals();
+        const proj = this.projects.find(p => p.id === this.currentProjectId);
+        if (!proj) return;
+
+        this.isEditing = true;
+        this.dom.modalProjectTitle.innerText = '이름 변경';
+        this.dom.projectNameInput.value = proj.name;
+        this.dom.projectNameError.classList.add('hidden');
+        this.dom.modalProjectForm.classList.remove('hidden');
+      }
+
+      submitProjectForm() {
+        const name = this.dom.projectNameInput.value.trim();
+        if (!name) {
+          this.dom.projectNameError.classList.remove('hidden');
+          return;
+        }
+
+        const now = new Date().toISOString();
+
+        if (this.isEditing) {
+          const proj = this.projects.find(p => p.id === this.currentProjectId);
+          if (proj) {
+            proj.name = name;
+            proj.updatedAt = now;
+            this.dom.projectViewName.innerText = name;
+          }
+          this.showNotice('이름이 변경되었습니다.');
+        } else {
+          const newProject = {
+            id: 'proj_' + Date.now(),
+            name: name,
+            createdAt: now,
+            updatedAt: now,
+            thumbnail: null,
+            defaultSubtitleStyle: { fontSize: 'medium', color: '#ffffff' },
+            titleCard: { enabled: true, title: name },
+            exportSettings: { resolution: '1080p', fps: 30 }
+          };
+          this.projects.push(newProject);
+          this.showNotice('프로젝트가 생성되었습니다.');
+        }
+
+        this.saveProjects();
+        this.renderProjectsList();
+        this.closeModals();
+      }
+
+      openProjectMenu() {
+        this.dom.modalProjectMenu.classList.remove('hidden');
+      }
+
+      openDeleteConfirmModal() {
+        this.closeModals();
+        this.dom.modalDeleteConfirm.classList.remove('hidden');
+      }
+
+      confirmDeleteProject() {
+        this.projects = this.projects.filter(p => p.id !== this.currentProjectId);
+        this.saveProjects();
+        this.renderProjectsList();
+        this.closeModals();
+        this.showNotice('프로젝트가 삭제되었습니다.');
+        this.navigateTo('home');
+      }
+
+      closeModals() {
+        this.dom.modalProjectForm.classList.add('hidden');
+        this.dom.modalDeleteConfirm.classList.add('hidden');
+        this.dom.modalProjectMenu.classList.add('hidden');
+        this.dom.modalSelectProjectShoot.classList.add('hidden');
+      }
+
+      selectShootDuration(duration) {
+        this.selectedShootDuration = duration;
+        document.querySelectorAll('.duration-btn').forEach(btn => {
+          btn.classList.remove('bg-brand-red', 'text-white');
+          btn.classList.add('text-slate-400');
+        });
+        const selectedBtn = document.getElementById(`duration-${duration}`);
+        if (selectedBtn) {
+          selectedBtn.classList.add('bg-brand-red', 'text-white');
+          selectedBtn.classList.remove('text-slate-400');
+        }
+      }
+
+      triggerMockCapture() {
+        this.showNotice('녹화 기능은 준비 중입니다.');
+      }
+
+      updateSubtitlePreview(val) {
+        if (!val.trim()) {
+          this.dom.editorSubtitleOverlay.innerText = '자막 미리보기';
+        } else {
+          this.dom.editorSubtitleOverlay.innerText = val;
+        }
+      }
+
+      processMergeVideo() {
+        this.showNotice('영상 합치기 기능은 준비 중입니다.');
+        setTimeout(() => {
+          this.navigateTo('export');
+        }, 500);
+      }
+
+      showNotice(msg) {
+        this.dom.toastText.innerText = msg;
+        this.dom.toastMessage.classList.remove('opacity-0', 'pointer-events-none');
+        this.dom.toastMessage.classList.add('opacity-100');
+
+        setTimeout(() => {
+          this.dom.toastMessage.classList.remove('opacity-100');
+          this.dom.toastMessage.classList.add('opacity-0', 'pointer-events-none');
+        }, 2200);
+      }
+
+      formatRelativeTime(isoString) {
+        try {
+          const date = new Date(isoString);
+          const now = new Date();
+          const diffInSeconds = Math.floor((now - date) / 1000);
+
+          if (diffInSeconds < 60) return '방금 전';
+          if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}분 전`;
+          if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}시간 전`;
+          return `${date.getMonth() + 1}/${date.getDate()}`;
+        } catch (e) {
+          return '최근';
+        }
+      }
+
+      escapeHtml(str) {
+        return str.replace(/[&<>"']/g, function(m) {
+          return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+          }[m];
+        });
+      }
+    }
+
+    let app;
+    window.addEventListener('DOMContentLoaded', () => {
+      app = new MinivlogApp();
+    });
+  </script>
+</body>
+</html>
