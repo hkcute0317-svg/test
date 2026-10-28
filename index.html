@@ -54,7 +54,7 @@ label { font-size:14px }
 <input id="title" type="text" placeholder="예: 오늘의 일상">
 <p class="muted">선택한 영상 순서대로 합쳐져. 각 영상에 자막을 따로 입력할 수 있어.</p>
 <label><input id="audioToggle" type="checkbox" checked> 원본 소리 포함</label>
-<p class="muted">출력 설정: 720 × 1280, 30fps, 목표 비트레이트 4Mbps. 원본보다 낮은 화질의 영상은 원래 화질을 복구할 수 없어.</p>
+<p class="muted">출력 설정: 1080 × 1920, 30fps, 목표 비트레이트 8Mbps. 원본보다 낮은 화질의 영상은 원래 화질을 복구할 수 없어.</p>
 </section>
 
 <section class="card">
@@ -74,10 +74,10 @@ label { font-size:14px }
 const $ = id => document.getElementById(id);
 const DB_NAME = "VideoCaptureTest";
 const STORE_NAME = "clips";
-const WIDTH = 720;
-const HEIGHT = 1280;
+const WIDTH = 1080;
+const HEIGHT = 1920;
 const FPS = 30;
-const VIDEO_BITRATE = 4000000;
+const VIDEO_BITRATE = 8000000;
 
 let db = null;
 let records = [];
