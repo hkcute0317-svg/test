@@ -201,6 +201,12 @@
       color: #aaa;
       font-size: 12px;
       position: relative;
+      overflow: hidden;
+    }
+    .project-thumb video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .project-info {
@@ -488,7 +494,6 @@
       display: none;
       font-size: 13px;
       color: var(--sub-text);
-      display: flex;
       flex-direction: column;
       gap: 12px;
     }
@@ -599,7 +604,6 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    /* Render Progress Modal */
     #render-progress-box {
       text-align: center;
       gap: 12px;
@@ -726,12 +730,10 @@
       </header>
       <div class="editor-container">
         
-        <!-- 1. Video Order & List Management -->
+        <!-- 1. Video Order & Management -->
         <div class="accordion-item open">
-          <div class="accordion-header" onclick="toggleAccordion(this)">1. 영상 순서 및 관리 <span>▼</span></div>
-          <div class="accordion-body" id="editor-video-order-list">
-            <!-- Rendered dynamically -->
-          </div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">1. 영상 순서 및 삭제 관리 <span>▼</span></div>
+          <div class="accordion-body" id="editor-video-order-list"></div>
         </div>
 
         <!-- 2. Title Card Settings -->
@@ -749,32 +751,74 @@
               <label>표시 시간 (초)</label>
               <input type="number" id="setting-title-duration" class="form-input" value="3" min="1" max="10" oninput="saveProjectSettings()">
             </div>
+            <div class="form-group">
+              <label>배경 선택</label>
+              <select id="setting-title-bg-select" class="form-select" onchange="saveProjectSettings()">
+                <option value="solid">단색 배경 (검정)</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <!-- 3. Subtitle & Timestamp Settings -->
+        <!-- 3. Project Default Subtitle Style -->
         <div class="accordion-item">
-          <div class="accordion-header" onclick="toggleAccordion(this)">3. 자막 및 촬영 시각 설정 <span>▼</span></div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">3. 프로젝트 기본 자막 스타일 <span>▼</span></div>
           <div class="accordion-body">
             <div class="form-group">
-              <label><input type="checkbox" id="setting-show-timestamp" onchange="saveProjectSettings()"> 촬영 시각 표시 (예: 18:40)</label>
+              <label>글자 크기</label>
+              <input type="number" id="setting-sub-size" class="form-input" value="42" oninput="saveProjectSettings()">
             </div>
-            <hr style="border:0; border-top:1px solid var(--border-color);">
-            <div id="editor-subtitles-list" style="display:flex; flex-direction:column; gap:10px;">
-              <!-- Per-video subtitles -->
+            <div class="form-group">
+              <label>글자 색상</label>
+              <input type="color" id="setting-sub-color" value="#ffffff" onchange="saveProjectSettings()" style="height:38px; width:100%; border:1px solid var(--border-color); border-radius:8px; padding:2px; background:#fff;">
+            </div>
+            <div class="form-group">
+              <label>화면 위치</label>
+              <select id="setting-sub-position" class="form-select" onchange="saveProjectSettings()">
+                <option value="bottom">아래쪽</option>
+                <option value="center">중앙</option>
+                <option value="top">위쪽</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" id="setting-sub-shadow" checked onchange="saveProjectSettings()"> 글자 그림자 사용</label>
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" id="setting-sub-bguse" checked onchange="saveProjectSettings()"> 자막 배경 박스 사용</label>
             </div>
           </div>
         </div>
 
-        <!-- 4. Audio Settings -->
+        <!-- 4. Per-Video Subtitle & Style -->
         <div class="accordion-item">
-          <div class="accordion-header" onclick="toggleAccordion(this)">4. 영상별 원본 소리 <span>▼</span></div>
-          <div class="accordion-body" id="editor-audio-list">
-            <!-- Per-video audio toggles -->
+          <div class="accordion-header" onclick="toggleAccordion(this)">4. 영상별 자막 문구 <span>▼</span></div>
+          <div class="accordion-body" id="editor-subtitles-list"></div>
+        </div>
+
+        <!-- 5. Timestamp Display Settings -->
+        <div class="accordion-item">
+          <div class="accordion-header" onclick="toggleAccordion(this)">5. 촬영 시각 표시 설정 <span>▼</span></div>
+          <div class="accordion-body">
+            <div class="form-group">
+              <label><input type="checkbox" id="setting-show-timestamp" checked onchange="saveProjectSettings()"> 촬영 시각 표시 (예: 18:40)</label>
+            </div>
+            <div class="form-group">
+              <label>표시 위치</label>
+              <select id="setting-timestamp-pos" class="form-select" onchange="saveProjectSettings()">
+                <option value="top-left">좌측 상단</option>
+                <option value="top-right">우측 상단</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <button class="btn-primary" style="margin-top: 10px; padding: 14px;" onclick="startStitchingAndExport()">완성본 영상 생성 (MP4/WebM)</button>
+        <!-- 6. Original Audio Settings -->
+        <div class="accordion-item">
+          <div class="accordion-header" onclick="toggleAccordion(this)">6. 영상별 원본 소리 설정 <span>▼</span></div>
+          <div class="accordion-body" id="editor-audio-list"></div>
+        </div>
+
+        <button class="btn-primary" style="margin-top: 10px; padding: 14px;" onclick="startStitchingAndExport()">완성본 영상 생성 (WebM 출력)</button>
       </div>
     </div>
 
@@ -788,7 +832,7 @@
       <div class="preview-screen">
         <video id="final-video-player" class="preview-video" controls playsinline></video>
         <div class="preview-actions">
-          <button class="btn-primary" onclick="downloadFinalVideo()">기기에 다운로드</button>
+          <button class="btn-primary" onclick="downloadFinalVideo()">기기에 다운로드 (WebM)</button>
           <button class="btn-secondary" style="background:#333;" onclick="navigate('project')">프로젝트로 돌아가기</button>
         </div>
       </div>
@@ -798,15 +842,21 @@
     <div id="view-settings" class="view-container">
       <header>
         <button class="icon-btn" onclick="navigate('home')">← 홈</button>
-        <div style="font-size:16px; font-weight:700;">설정</div>
+        <div style="font-size:16px; font-weight:700;">설정 및 저장 공간</div>
         <div></div>
       </header>
       <div class="editor-container" style="gap:16px;">
-        <h3>minivlog v0.3</h3>
-        <p style="font-size:13px; color:var(--sub-text);">모바일 브라우저 기반 개인 영상 기록 및 편집 도구</p>
+        <h3>minivlog v0.4</h3>
+        <p style="font-size:13px; color:var(--sub-text);">모바일 웹 기반 개인 영상 기록 및 편집 도구</p>
         <hr style="border:0; border-top:1px solid var(--border-color);">
-        <h4>저장 공간 현황</h4>
-        <p id="storage-info" style="font-size:13px; color:var(--sub-text);">IndexedDB를 통해 안전하게 저장됩니다.</p>
+        <h4>저장 공간 사용량</h4>
+        <div id="storage-usage-box" style="font-size:13px; color:var(--text-color); background:var(--card-bg); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+          조회 중...
+        </div>
+        <p style="font-size:11px; color:var(--sub-text);">※ 브라우저 저장소는 영구 백업이 아니며 기기 환경에 따라 삭제될 수 있습니다.</p>
+        <hr style="border:0; border-top:1px solid var(--border-color);">
+        <h4>프로젝트별 영상 관리 및 삭제</h4>
+        <div id="storage-project-list" style="display:flex; flex-direction:column; gap:10px;"></div>
       </div>
     </div>
 
@@ -878,6 +928,7 @@
     let currentFacingMode = 'environment';
     let recordedBlobUrl = null;
     let pendingRecordedBlob = null;
+    let pendingRecordedStartTime = null;
     let finalStitchedBlob = null;
 
     function initDB() {
@@ -914,6 +965,26 @@
       if (saved) {
         try { projects = JSON.parse(saved); } catch(e) { projects = []; }
       } else { projects = []; }
+      
+      // Migration / Default safety checks
+      projects.forEach(p => {
+        if (!p.videoOrder) p.videoOrder = [];
+        if (!p.videoMeta) p.videoMeta = {};
+        if (!p.settings) {
+          p.settings = {
+            titleUse: false, titleText: '', titleDuration: 3, titleBgVideoId: 'solid',
+            showTimestamp: true, timestampPos: 'top-left',
+            subSize: 42, subColor: '#ffffff', subPosition: 'bottom', subShadow: true, subBgUse: true
+          };
+        } else {
+          if (p.settings.showTimestamp === undefined) p.settings.showTimestamp = true;
+          if (!p.settings.subSize) p.settings.subSize = 42;
+          if (!p.settings.subColor) p.settings.subColor = '#ffffff';
+          if (!p.settings.subPosition) p.settings.subPosition = 'bottom';
+          if (p.settings.subShadow === undefined) p.settings.subShadow = true;
+          if (p.settings.subBgUse === undefined) p.settings.subBgUse = true;
+        }
+      });
     }
 
     function saveProjectsToLocalStorage() {
@@ -934,6 +1005,9 @@
 
       if (viewName === 'editor' && currentProjectId) {
         loadEditorSettings();
+      }
+      if (viewName === 'settings') {
+        loadStorageInfo();
       }
     }
 
@@ -957,13 +1031,26 @@
         return;
       }
       const sorted = [...projects].sort((a, b) => b.lastModified - a.lastModified);
-      sorted.forEach(p => {
+      sorted.forEach(async p => {
         const card = document.createElement('div');
         card.className = 'project-card';
         card.onclick = () => openProject(p.id);
         const timeStr = new Date(p.lastModified).toLocaleDateString();
+        
+        let thumbHtml = `<span>🎬 썸네일</span>`;
+        if (p.videoOrder && p.videoOrder.length > 0) {
+          try {
+            const vids = await getVideosOfProject(p.id);
+            const firstVid = vids.find(v => v.id === p.videoOrder[0]);
+            if (firstVid && firstVid.blob) {
+              const url = URL.createObjectURL(firstVid.blob);
+              thumbHtml = `<video src="${url}" muted preload="metadata"></video>`;
+            }
+          } catch(e) {}
+        }
+
         card.innerHTML = `
-          <div class="project-thumb"><span>🎬 썸네일</span></div>
+          <div class="project-thumb">${thumbHtml}</div>
           <div class="project-info">
             <div class="project-name">${escapeHtml(p.name)}</div>
             <div class="project-meta">
@@ -1005,8 +1092,12 @@
           createdAt: Date.now(),
           lastModified: Date.now(),
           videoOrder: [],
-          videoMeta: {}, // { vid: { subtitle, audioMuted, createdAt } }
-          settings: { titleUse: false, titleText: '', titleDuration: 3, showTimestamp: true }
+          videoMeta: {},
+          settings: {
+            titleUse: false, titleText: '', titleDuration: 3, titleBgVideoId: 'solid',
+            showTimestamp: true, timestampPos: 'top-left',
+            subSize: 42, subColor: '#ffffff', subPosition: 'bottom', subShadow: true, subBgUse: true
+          }
         };
         projects.push(newProj);
         saveProjectsToLocalStorage();
@@ -1134,6 +1225,7 @@
 
     function startRecording() {
       recordedChunks = [];
+      pendingRecordedStartTime = Date.now();
       try {
         let options = { mimeType: 'video/webm;codecs=vp9,opus' };
         if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm' };
@@ -1178,25 +1270,26 @@
 
     function retakeVideo() {
       pendingRecordedBlob = null;
+      pendingRecordedStartTime = null;
       if (recordedBlobUrl) URL.revokeObjectURL(recordedBlobUrl);
       startCamera();
     }
 
     /* --- IndexedDB & Video Management --- */
-    function saveVideoToDB(projectId, blob) {
+    function saveVideoToDB(projectId, blob, startTime) {
       return new Promise((resolve, reject) => {
         if (!db) return reject("DB 연결 안됨");
         const transaction = db.transaction(['videos'], 'readwrite');
         const store = transaction.objectStore('videos');
         const videoId = 'vid_' + Date.now();
-        const record = { id: videoId, projectId, blob, createdAt: Date.now() };
+        const record = { id: videoId, projectId, blob, createdAt: startTime || Date.now() };
         store.add(record).onsuccess = () => resolve(videoId);
         store.onerror = (e) => reject(e.target.error);
       });
     }
 
     function getVideosOfProject(projectId) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         if (!db) return resolve([]);
         const store = db.transaction(['videos'], 'readonly').objectStore('videos');
         store.index('projectId').getAll(projectId).onsuccess = (e) => resolve(e.target.result || []);
@@ -1204,7 +1297,7 @@
     }
 
     function deleteVideoFromDB(videoId) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const store = db.transaction(['videos'], 'readwrite').objectStore('videos');
         store.delete(videoId).onsuccess = () => resolve();
       });
@@ -1230,7 +1323,9 @@
       vids.forEach(v => {
         if (!p.videoOrder.includes(v.id)) p.videoOrder.push(v.id);
         if (!p.videoMeta[v.id]) {
-          p.videoMeta[v.id] = { subtitle: '', audioMuted: false, createdAt: v.createdAt };
+          p.videoMeta[v.id] = { subtitle: '', audioMuted: false, createdAt: v.createdAt || Date.now() };
+        } else if (!p.videoMeta[v.id].createdAt) {
+          p.videoMeta[v.id].createdAt = v.createdAt || Date.now();
         }
       });
       p.videoOrder = p.videoOrder.filter(id => vids.some(v => v.id === id));
@@ -1247,7 +1342,8 @@
         const card = document.createElement('div');
         card.className = 'video-item-card';
         const blobUrl = URL.createObjectURL(v.blob);
-        const timeStr = new Date(v.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const meta = p.videoMeta[vidId] || {};
+        const timeStr = new Date(meta.createdAt || v.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
         card.innerHTML = `
           <div class="video-thumb-box" onclick="playVideo('${v.id}')">
@@ -1273,18 +1369,20 @@
     async function saveVideoAction(continueShooting) {
       if (!pendingRecordedBlob || !currentProjectId) return;
       try {
-        const vidId = await saveVideoToDB(currentProjectId, pendingRecordedBlob);
+        const startTime = pendingRecordedStartTime || Date.now();
+        const vidId = await saveVideoToDB(currentProjectId, pendingRecordedBlob, startTime);
         const p = getCurrentProject();
         if (p) {
           if (!p.videoOrder) p.videoOrder = [];
           p.videoOrder.push(vidId);
           if (!p.videoMeta) p.videoMeta = {};
-          p.videoMeta[vidId] = { subtitle: '', audioMuted: false, createdAt: Date.now() };
+          p.videoMeta[vidId] = { subtitle: '', audioMuted: false, createdAt: startTime };
           p.lastModified = Date.now();
           saveProjectsToLocalStorage();
         }
         showToast("영상이 저장되었습니다.");
         pendingRecordedBlob = null;
+        pendingRecordedStartTime = null;
         if (continueShooting) startCamera(); else openProject(currentProjectId);
       } catch (e) { showToast("저장 실패"); }
     }
@@ -1342,14 +1440,40 @@
       if (!p) return;
 
       if (!p.settings) {
-        p.settings = { titleUse: false, titleText: '', titleDuration: 3, showTimestamp: true };
+        p.settings = {
+          titleUse: false, titleText: '', titleDuration: 3, titleBgVideoId: 'solid',
+          showTimestamp: true, timestampPos: 'top-left',
+          subSize: 42, subColor: '#ffffff', subPosition: 'bottom', subShadow: true, subBgUse: true
+        };
       }
+
       document.getElementById('setting-title-use').checked = !!p.settings.titleUse;
       document.getElementById('setting-title-text').value = p.settings.titleText || '';
       document.getElementById('setting-title-duration').value = p.settings.titleDuration || 3;
       document.getElementById('setting-show-timestamp').checked = p.settings.showTimestamp !== false;
+      document.getElementById('setting-timestamp-pos').value = p.settings.timestampPos || 'top-left';
+      document.getElementById('setting-sub-size').value = p.settings.subSize || 42;
+      document.getElementById('setting-sub-color').value = p.settings.subColor || '#ffffff';
+      document.getElementById('setting-sub-position').value = p.settings.subPosition || 'bottom';
+      document.getElementById('setting-sub-shadow').checked = p.settings.subShadow !== false;
+      document.getElementById('setting-sub-bguse').checked = p.settings.subBgUse !== false;
 
-      // Render order & meta inputs in editor
+      // Populate title background options
+      const bgSelect = document.getElementById('setting-title-bg-select');
+      bgSelect.innerHTML = `<option value="solid">단색 배경 (검정)</option>`;
+      
+      const vids = await getVideosOfProject(currentProjectId);
+      vids.forEach((v, idx) => {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.innerText = `#${idx+1} 영상 배경`;
+        if (p.settings.titleBgVideoId === v.id) opt.selected = true;
+        bgSelect.appendChild(opt);
+      });
+
+      if (!p.videoOrder) p.videoOrder = vids.map(v => v.id);
+
+      // Render order, subtitles, audio lists
       const orderList = document.getElementById('editor-video-order-list');
       const subList = document.getElementById('editor-subtitles-list');
       const audioList = document.getElementById('editor-audio-list');
@@ -1357,9 +1481,6 @@
       orderList.innerHTML = '';
       subList.innerHTML = '';
       audioList.innerHTML = '';
-
-      const vids = await getVideosOfProject(currentProjectId);
-      if (!p.videoOrder) p.videoOrder = vids.map(v => v.id);
 
       if (p.videoOrder.length === 0) {
         orderList.innerHTML = `<span style="color:var(--sub-text);">영상이 없습니다.</span>`;
@@ -1371,10 +1492,10 @@
       p.videoOrder.forEach((vidId, idx) => {
         const v = vids.find(item => item.id === vidId);
         if (!v) return;
-        if (!p.videoMeta[vidId]) p.videoMeta[vidId] = { subtitle: '', audioMuted: false, createdAt: v.createdAt };
+        if (!p.videoMeta[vidId]) p.videoMeta[vidId] = { subtitle: '', audioMuted: false, createdAt: v.createdAt || Date.now() };
         const meta = p.videoMeta[vidId];
 
-        // Order item
+        // 1. Order item
         const ordDiv = document.createElement('div');
         ordDiv.className = 'video-item-row';
         ordDiv.innerHTML = `
@@ -1386,16 +1507,16 @@
         `;
         orderList.appendChild(ordDiv);
 
-        // Subtitle item
+        // 4. Subtitle item
         const subDiv = document.createElement('div');
         subDiv.className = 'form-group';
         subDiv.innerHTML = `
-          <label>#${idx+1} 자막 내용</label>
+          <label>#${idx+1} 자막 내용 (비워두면 출력 안함)</label>
           <input type="text" class="form-input sub-input" data-id="${vidId}" value="${escapeHtml(meta.subtitle || '')}" placeholder="자막 입력" oninput="saveMetaInput()">
         `;
         subList.appendChild(subDiv);
 
-        // Audio item
+        // 6. Audio item
         const audDiv = document.createElement('div');
         audDiv.className = 'video-item-row';
         audDiv.innerHTML = `
@@ -1417,7 +1538,14 @@
       p.settings.titleUse = document.getElementById('setting-title-use').checked;
       p.settings.titleText = document.getElementById('setting-title-text').value;
       p.settings.titleDuration = parseInt(document.getElementById('setting-title-duration').value) || 3;
+      p.settings.titleBgVideoId = document.getElementById('setting-title-bg-select').value;
       p.settings.showTimestamp = document.getElementById('setting-show-timestamp').checked;
+      p.settings.timestampPos = document.getElementById('setting-timestamp-pos').value;
+      p.settings.subSize = parseInt(document.getElementById('setting-sub-size').value) || 42;
+      p.settings.subColor = document.getElementById('setting-sub-color').value;
+      p.settings.subPosition = document.getElementById('setting-sub-position').value;
+      p.settings.subShadow = document.getElementById('setting-sub-shadow').checked;
+      p.settings.subBgUse = document.getElementById('setting-sub-bguse').checked;
       saveProjectsToLocalStorage();
     }
 
@@ -1433,6 +1561,78 @@
         if (p.videoMeta[id]) p.videoMeta[id].audioMuted = !chk.checked;
       });
       saveProjectsToLocalStorage();
+    }
+
+    /* --- Storage Management Screen --- */
+    async function loadStorageInfo() {
+      const usageBox = document.getElementById('storage-usage-box');
+      const listContainer = document.getElementById('storage-project-list');
+      listContainer.innerHTML = '';
+
+      if (navigator.storage && navigator.storage.estimate) {
+        try {
+          const est = await navigator.storage.estimate();
+          const usageMB = (est.usage / (1024 * 1024)).toFixed(2);
+          const quotaMB = (est.quota / (1024 * 1024)).toFixed(0);
+          usageBox.innerHTML = `사용 중: <strong>${usageMB} MB</strong> / 전체 할당: ${quotaMB} MB`;
+        } catch(e) {
+          usageBox.innerHTML = `저장 공간 추정치를 불러올 수 없습니다.`;
+        }
+      } else {
+        usageBox.innerHTML = `브라우저가 저장 공간 조회 API를 지원하지 않습니다.`;
+      }
+
+      if (projects.length === 0) {
+        listContainer.innerHTML = `<span style="font-size:13px; color:var(--sub-text);">생성된 프로젝트가 없습니다.</span>`;
+        return;
+      }
+
+      for (const p of projects) {
+        const vids = await getVideosOfProject(p.id);
+        const projDiv = document.createElement('div');
+        projDiv.style.background = 'var(--card-bg)';
+        projDiv.style.border = '1px solid var(--border-color)';
+        projDiv.style.borderRadius = '8px';
+        projDiv.style.padding = '12px';
+        projDiv.style.display = 'flex';
+        projDiv.style.flexDirection = 'column';
+        projDiv.style.gap = '8px';
+
+        let vidsHtml = vids.length === 0 ? `<div style="font-size:12px; color:var(--sub-text);">저장된 영상 없음</div>` : '';
+        vids.forEach((v, idx) => {
+          const timeStr = new Date(v.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          vidsHtml += `
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-top:1px solid var(--border-color);">
+              <span>#${idx+1} (${timeStr})</span>
+              <button class="mini-btn danger" onclick="deleteVideoFromStorage('${v.id}', '${p.id}')">개별 삭제</button>
+            </div>
+          `;
+        });
+
+        projDiv.innerHTML = `
+          <div style="font-weight:600; font-size:14px; display:flex; justify-content:space-between;">
+            <span>${escapeHtml(p.name)}</span>
+            <span style="font-size:12px; color:var(--sub-text);">영상 ${vids.length}개</span>
+          </div>
+          ${vidsHtml}
+        `;
+        listContainer.appendChild(projDiv);
+      }
+    }
+
+    async function deleteVideoFromStorage(videoId, projId) {
+      if (!confirm("이 영상을 정말 삭제하시겠습니까?")) return;
+      await deleteVideoFromDB(videoId);
+      const p = projects.find(item => item.id === projId);
+      if (p) {
+        if (p.videoOrder) p.videoOrder = p.videoOrder.filter(id => id !== videoId);
+        if (p.videoMeta) delete p.videoMeta[videoId];
+        p.lastModified = Date.now();
+        saveProjectsToLocalStorage();
+      }
+      showToast("영상이 삭제되었습니다.");
+      loadStorageInfo();
+      renderHomeProjects();
     }
 
     /* --- Client-Side Video Stitching & Export --- */
@@ -1453,7 +1653,6 @@
         const vids = await getVideosOfProject(currentProjectId);
         const orderedVids = p.videoOrder.map(id => vids.find(v => v.id === id)).filter(Boolean);
 
-        // Setup Canvas (1080x1920)
         const canvas = document.createElement('canvas');
         canvas.width = 1080;
         canvas.height = 1920;
@@ -1466,7 +1665,6 @@
         let options = { mimeType: 'video/webm;codecs=vp9,opus' };
         if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm' };
 
-        // Combine video stream + audio destination stream
         const combinedStream = new MediaStream([
           ...stream.getVideoTracks(),
           ...dest.stream.getAudioTracks()
@@ -1484,19 +1682,95 @@
         });
 
         recorder.start();
-        progressFill.style.width = '30%';
-        statusText.innerText = "렌더링 진행 중...";
+        progressFill.style.width = '20%';
+        statusText.innerText = "렌더링 시작...";
 
-        // Helper to play & draw video frames
+        // 1. Title Card Rendering if enabled
+        if (p.settings.titleUse && p.settings.titleText) {
+          statusText.innerText = "타이틀 카드 렌더링 중...";
+          let titleBgVid = null;
+          if (p.settings.titleBgVideoId && p.settings.titleBgVideoId !== 'solid') {
+            const bgVData = vids.find(v => v.id === p.settings.titleBgVideoId);
+            if (bgVData) titleBgVid = URL.createObjectURL(bgVData.blob);
+          }
+
+          const durationSec = p.settings.titleDuration || 3;
+          const totalFrames = durationSec * 30;
+          let frameCount = 0;
+
+          await new Promise((resolveTitle) => {
+            if (titleBgVid) {
+              const bgVidEl = document.createElement('video');
+              bgVidEl.src = titleBgVid;
+              bgVidEl.muted = true;
+              bgVidEl.playsInline = true;
+              bgVidEl.onloadedmetadata = () => {
+                bgVidEl.play();
+                function drawTitleFrame() {
+                  frameCount++;
+                  ctx.fillStyle = '#000000';
+                  ctx.fillRect(0, 0, 1080, 1920);
+                  
+                  const vw = bgVidEl.videoWidth || 1080;
+                  const vh = bgVidEl.videoHeight || 1920;
+                  const scale = Math.max(1080 / vw, 1920 / vh);
+                  ctx.drawImage(bgVidEl, (1080 - vw * scale)/2, (1920 - vh * scale)/2, vw * scale, vh * scale);
+
+                  // Dark overlay for readability
+                  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                  ctx.fillRect(0, 0, 1080, 1920);
+
+                  // Title Text
+                  ctx.fillStyle = '#ffffff';
+                  ctx.font = 'bold 64px sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.fillText(p.settings.titleText, 540, 960);
+
+                  if (frameCount < totalFrames && !bgVidEl.ended) {
+                    requestAnimationFrame(drawTitleFrame);
+                  } else {
+                    bgVidEl.pause();
+                    URL.revokeObjectURL(titleBgVid);
+                    resolveTitle();
+                  }
+                }
+                requestAnimationFrame(drawTitleFrame);
+              };
+            } else {
+              // Solid background
+              function drawSolidTitle() {
+                frameCount++;
+                ctx.fillStyle = '#111111';
+                ctx.fillRect(0, 0, 1080, 1920);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 64px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.settings.titleText, 540, 960);
+
+                if (frameCount < totalFrames) {
+                  requestAnimationFrame(drawSolidTitle);
+                } else {
+                  resolveTitle();
+                }
+              }
+              requestAnimationFrame(drawSolidTitle);
+            }
+          });
+        }
+
+        // 2. Video items rendering
         for (let i = 0; i < orderedVids.length; i++) {
           const vData = orderedVids[i];
           const meta = p.videoMeta[vData.id] || {};
           const blobUrl = URL.createObjectURL(vData.blob);
           
+          statusText.innerText = `#${i+1} 영상 합성 중... (${i+1}/${orderedVids.length})`;
+
           await new Promise((resolveVideo) => {
             const vidEl = document.createElement('video');
             vidEl.src = blobUrl;
-            vidEl.muted = meta.audioMuted;
+            vidEl.muted = !!meta.audioMuted;
             vidEl.playsInline = true;
 
             vidEl.onloadedmetadata = () => {
@@ -1505,61 +1779,80 @@
                 try {
                   sourceNode = audioCtx.createMediaElementSource(vidEl);
                   sourceNode.connect(dest);
-                  sourceNode.connect(audioCtx.destination);
                 } catch(e) {}
               }
 
-              vidEl.play();
-              let startTime = performance.now();
-              const durationMs = vidEl.duration * 1000;
+              vidEl.play().then(() => {
+                function drawFrame() {
+                  if (vidEl.ended || vidEl.paused) {
+                    URL.revokeObjectURL(blobUrl);
+                    resolveVideo();
+                    return;
+                  }
 
-              function drawFrame(now) {
-                if (vidEl.ended || vidEl.paused) {
-                  resolveVideo();
-                  return;
+                  ctx.fillStyle = '#000000';
+                  ctx.fillRect(0, 0, 1080, 1920);
+
+                  const vw = vidEl.videoWidth || 1080;
+                  const vh = vidEl.videoHeight || 1920;
+                  const scale = Math.max(1080 / vw, 1920 / vh);
+                  const sw = vw * scale;
+                  const sh = vh * scale;
+                  const sx = (1080 - sw) / 2;
+                  const sy = (1920 - sh) / 2;
+
+                  ctx.drawImage(vidEl, sx, sy, sw, sh);
+
+                  // Draw Timestamp
+                  if (p.settings.showTimestamp && meta.createdAt) {
+                    const timeStr = new Date(meta.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const isTopRight = p.settings.timestampPos === 'top-right';
+                    const tx = isTopRight ? 820 : 60;
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(tx, 60, 200, 50);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 24px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(timeStr, tx + 25, 93);
+                  }
+
+                  // Draw Subtitle
+                  if (meta.subtitle) {
+                    const subSize = p.settings.subSize || 42;
+                    const subColor = p.settings.subColor || '#ffffff';
+                    const subPos = p.settings.subPosition || 'bottom';
+                    
+                    ctx.font = `bold ${subSize}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    const textWidth = ctx.measureText(meta.subtitle).width;
+                    
+                    let py = 1750;
+                    if (subPos === 'top') py = 250;
+                    if (subPos === 'center') py = 960;
+
+                    if (p.settings.subBgUse) {
+                      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                      ctx.fillRect(540 - textWidth/2 - 30, py - subSize - 10, textWidth + 60, subSize + 30);
+                    }
+
+                    if (p.settings.subShadow) {
+                      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                      ctx.shadowBlur = 6;
+                    }
+
+                    ctx.fillStyle = subColor;
+                    ctx.fillText(meta.subtitle, 540, py);
+                    ctx.shadowBlur = 0; // reset
+                  }
+
+                  progressFill.style.width = Math.min(95, 20 + Math.floor(((i + (vidEl.currentTime / vidEl.duration)) / orderedVids.length) * 75)) + '%';
+                  requestAnimationFrame(drawFrame);
                 }
-
-                // Draw background/video
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(0, 0, 1080, 1920);
-
-                // Fit cover in 1080x1920
-                const vw = vidEl.videoWidth || 1080;
-                const vh = vidEl.videoHeight || 1920;
-                const scale = Math.max(1080 / vw, 1920 / vh);
-                const sw = vw * scale;
-                const sh = vh * scale;
-                const sx = (1080 - sw) / 2;
-                const sy = (1920 - sh) / 2;
-
-                ctx.drawImage(vidEl, sx, sy, sw, sh);
-
-                // Draw Timestamp
-                if (p.settings.showTimestamp && meta.createdAt) {
-                  const timeStr = new Date(meta.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                  ctx.fillRect(50, 80, 160, 50);
-                  ctx.fillStyle = '#ffffff';
-                  ctx.font = 'bold 24px sans-serif';
-                  ctx.fillText(timeStr, 75, 113);
-                }
-
-                // Draw Subtitle
-                if (meta.subtitle) {
-                  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                  ctx.font = 'bold 42px sans-serif';
-                  ctx.textAlign = 'center';
-                  const textWidth = ctx.measureText(meta.subtitle).width;
-                  ctx.fillRect(540 - textWidth/2 - 30, 1700 - 50, textWidth + 60, 80);
-
-                  ctx.fillStyle = '#ffffff';
-                  ctx.fillText(meta.subtitle, 540, 1750);
-                }
-
-                progressFill.style.width = Math.min(90, 30 + Math.floor(((i + (vidEl.currentTime / vidEl.duration)) / orderedVids.length) * 60)) + '%';
                 requestAnimationFrame(drawFrame);
-              }
-              requestAnimationFrame(drawFrame);
+              }).catch(() => {
+                URL.revokeObjectURL(blobUrl);
+                resolveVideo();
+              });
             };
           });
         }
