@@ -56,7 +56,6 @@
       }
     }
 
-    /* Common Layout & Header */
     header {
       display: flex;
       justify-content: space-between;
@@ -241,8 +240,12 @@
       align-items: center;
     }
     .project-detail-title {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
     }
     .project-actions-bar {
       padding: 16px 20px;
@@ -289,13 +292,13 @@
       border-radius: 10px;
       overflow: hidden;
       position: relative;
-      cursor: pointer;
     }
     .video-thumb-box {
       width: 100%;
       aspect-ratio: 9/16;
       background: #000;
       position: relative;
+      cursor: pointer;
     }
     .video-thumb-box video {
       width: 100%;
@@ -305,20 +308,33 @@
     .video-item-info {
       padding: 8px 10px;
       display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .video-item-row {
+      display: flex;
       justify-content: space-between;
       align-items: center;
     }
     .video-item-title {
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
     }
-    .video-item-del {
-      background: none;
+    .video-item-btns {
+      display: flex;
+      gap: 4px;
+    }
+    .mini-btn {
+      background: #e5e5e5;
       border: none;
-      color: var(--primary-red);
-      font-size: 12px;
-      cursor: pointer;
       padding: 2px 6px;
+      font-size: 11px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .mini-btn.danger {
+      background: #ff3b30;
+      color: #fff;
     }
 
     /* Camera View */
@@ -415,15 +431,15 @@
       display: inline-block;
     }
 
-    /* Post-Record Preview View */
-    .preview-screen {
+    /* Preview & Player Screens */
+    .preview-screen, .player-screen {
       flex: 1;
       background: #000;
       display: flex;
       flex-direction: column;
       position: relative;
     }
-    .preview-video {
+    .preview-video, .player-video {
       flex: 1;
       width: 100%;
       object-fit: contain;
@@ -440,66 +456,63 @@
       gap: 10px;
     }
 
-    /* Video Player Modal/View */
-    .player-screen {
-      flex: 1;
-      background: #000;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-    .player-video {
-      flex: 1;
-      width: 100%;
-      object-fit: contain;
-    }
-
-    /* Editor / Settings / Export Placeholders */
-    .placeholder-view {
-      padding: 40px 20px;
-      text-align: center;
+    /* Editor View */
+    .editor-container {
+      padding: 20px;
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 16px;
+      gap: 12px;
     }
-    .placeholder-view h2 {
-      font-size: 22px;
-      font-weight: 700;
-    }
-    .placeholder-view p {
-      color: var(--sub-text);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    /* Accordion in Editor */
     .accordion-item {
       border: 1px solid var(--border-color);
       border-radius: 10px;
-      margin-bottom: 10px;
       overflow: hidden;
+      background: var(--card-bg);
     }
     .accordion-header {
       padding: 14px 16px;
-      background: var(--card-bg);
       font-weight: 600;
       font-size: 14px;
       cursor: pointer;
       display: flex;
       justify-content: space-between;
+      background: #fff;
+      border-bottom: 1px solid transparent;
+    }
+    .accordion-item.open .accordion-header {
+      border-bottom-color: var(--border-color);
     }
     .accordion-body {
       padding: 16px;
       display: none;
-      border-top: 1px solid var(--border-color);
       font-size: 13px;
       color: var(--sub-text);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
     .accordion-item.open .accordion-body {
-      display: block;
+      display: flex;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 13px;
+      background: #fff;
     }
 
     /* Modals & Toasts */
@@ -537,9 +550,6 @@
       border-radius: 8px;
       font-size: 14px;
       outline: none;
-    }
-    .modal-input:focus {
-      border-color: var(--text-color);
     }
     .modal-btns {
       display: flex;
@@ -588,12 +598,31 @@
     .toast.show {
       transform: translateX(-50%) translateY(0);
     }
+
+    /* Render Progress Modal */
+    #render-progress-box {
+      text-align: center;
+      gap: 12px;
+    }
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #eee;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--primary-red);
+      transition: width 0.2s;
+    }
   </style>
 </head>
 <body>
 
   <div id="app">
-    <!-- Common Header -->
+    <!-- Header -->
     <header>
       <div class="brand" onclick="navigate('home')">minivlog</div>
       <button class="icon-btn" onclick="navigate('settings')">⚙️</button>
@@ -607,15 +636,12 @@
           <span>촬영하기</span>
         </button>
       </div>
-
       <div class="project-section">
         <div class="section-header">
           <span class="section-title">내 프로젝트</span>
           <button class="action-btn-sm" onclick="openCreateProjectModal()">프로젝트 만들기</button>
         </div>
-        <div id="project-grid" class="project-grid">
-          <!-- Rendered dynamically -->
-        </div>
+        <div id="project-grid" class="project-grid"></div>
       </div>
     </div>
 
@@ -628,16 +654,14 @@
       </div>
       <div class="project-actions-bar">
         <button class="btn-primary" onclick="startShootingCurrentProject()">촬영하기</button>
-        <button class="btn-secondary" onclick="navigate('editor')">완성본 만들기</button>
+        <button class="btn-secondary" onclick="navigate('editor')">편집하기</button>
       </div>
       <div class="video-list-container">
         <div class="section-header">
-          <span class="section-title">저장된 영상</span>
+          <span class="section-title">저장된 영상 목록</span>
           <button class="icon-btn" style="font-size:12px; color:var(--primary-red);" onclick="confirmDeleteProject()">프로젝트 삭제</button>
         </div>
-        <div id="video-grid" class="video-grid">
-          <!-- Rendered dynamically -->
-        </div>
+        <div id="video-grid" class="video-grid"></div>
       </div>
     </div>
 
@@ -675,7 +699,7 @@
           </div>
           <div class="btn-group-row">
             <button class="btn-secondary" style="background:#333;" onclick="saveVideoAction(true)">저장하고 계속 촬영</button>
-            <button class="btn-secondary" style="background:#222;" onclick="saveVideoAndReturnProject()">저장 후 프로젝트로</button>
+            <button class="btn-secondary" style="background:#222;" onclick="saveVideoAndReturnProject()">저장 후 프로젝트</button>
           </div>
         </div>
       </div>
@@ -686,53 +710,87 @@
       <header>
         <button class="icon-btn" onclick="navigate('project')">← 돌아가기</button>
         <div id="player-title" style="font-size:14px; font-weight:600;">영상 재생</div>
-        <button class="icon-btn" onclick="openVideoEditor()">편집</button>
+        <div></div>
       </header>
       <div class="player-screen">
         <video id="active-video-player" class="player-video" controls playsinline></video>
       </div>
     </div>
 
-    <!-- 6. Editor View -->
+    <!-- 6. Integrated Editor View -->
     <div id="view-editor" class="view-container">
       <header>
         <button class="icon-btn" onclick="navigate('project')">← 돌아가기</button>
-        <div style="font-size:16px; font-weight:700;">편집 및 완성본</div>
-        <button class="icon-btn" onclick="navigate('export')">출력</button>
+        <div style="font-size:16px; font-weight:700;">통합 편집</div>
+        <div></div>
       </header>
-      <div class="placeholder-view" style="padding: 20px; align-items: stretch;">
+      <div class="editor-container">
+        
+        <!-- 1. Video Order & List Management -->
         <div class="accordion-item open">
-          <div class="accordion-header" onclick="toggleAccordion(this)">1. 편집할 영상 순서 <span>▼</span></div>
-          <div class="accordion-body">현재 프로젝트에 저장된 영상 목록을 순서대로 정렬합니다. (준비 중)</div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">1. 영상 순서 및 관리 <span>▼</span></div>
+          <div class="accordion-body" id="editor-video-order-list">
+            <!-- Rendered dynamically -->
+          </div>
         </div>
+
+        <!-- 2. Title Card Settings -->
         <div class="accordion-item">
-          <div class="accordion-header" onclick="toggleAccordion(this)">2. 전체 제목 설정 <span>▼</span></div>
-          <div class="accordion-body">오프닝 타이틀 카드를 설정합니다. (준비 중)</div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">2. 타이틀 카드 설정 <span>▼</span></div>
+          <div class="accordion-body">
+            <div class="form-group">
+              <label><input type="checkbox" id="setting-title-use" onchange="saveProjectSettings()"> 타이틀 카드 사용</label>
+            </div>
+            <div class="form-group">
+              <label>타이틀 문구</label>
+              <input type="text" id="setting-title-text" class="form-input" placeholder="예: 나의 브이로그" oninput="saveProjectSettings()">
+            </div>
+            <div class="form-group">
+              <label>표시 시간 (초)</label>
+              <input type="number" id="setting-title-duration" class="form-input" value="3" min="1" max="10" oninput="saveProjectSettings()">
+            </div>
+          </div>
         </div>
+
+        <!-- 3. Subtitle & Timestamp Settings -->
         <div class="accordion-item">
-          <div class="accordion-header" onclick="toggleAccordion(this)">3. 자막 설정 <span>▼</span></div>
-          <div class="accordion-body">영상별 하단 자막을 입력합니다. (준비 중)</div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">3. 자막 및 촬영 시각 설정 <span>▼</span></div>
+          <div class="accordion-body">
+            <div class="form-group">
+              <label><input type="checkbox" id="setting-show-timestamp" onchange="saveProjectSettings()"> 촬영 시각 표시 (예: 18:40)</label>
+            </div>
+            <hr style="border:0; border-top:1px solid var(--border-color);">
+            <div id="editor-subtitles-list" style="display:flex; flex-direction:column; gap:10px;">
+              <!-- Per-video subtitles -->
+            </div>
+          </div>
         </div>
+
+        <!-- 4. Audio Settings -->
         <div class="accordion-item">
-          <div class="accordion-header" onclick="toggleAccordion(this)">4. 소리 및 오디오 <span>▼</span></div>
-          <div class="accordion-body">원본 소리 켜기/끄기 및 배경음악 (준비 중)</div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">4. 영상별 원본 소리 <span>▼</span></div>
+          <div class="accordion-body" id="editor-audio-list">
+            <!-- Per-video audio toggles -->
+          </div>
         </div>
-        <button class="btn-primary" style="margin-top: 20px;" onclick="showToast('영상 합치기 기능은 준비 중입니다.')">영상 합치기 및 출력</button>
+
+        <button class="btn-primary" style="margin-top: 10px; padding: 14px;" onclick="startStitchingAndExport()">완성본 영상 생성 (MP4/WebM)</button>
       </div>
     </div>
 
-    <!-- 7. Export View -->
+    <!-- 7. Export / Final Result View -->
     <div id="view-export" class="view-container">
       <header>
         <button class="icon-btn" onclick="navigate('editor')">← 편집</button>
-        <div style="font-size:16px; font-weight:700;">완성본</div>
+        <div style="font-size:16px; font-weight:700;">완성본 결과</div>
         <div></div>
       </header>
-      <div class="placeholder-view">
-        <div style="width: 150px; aspect-ratio: 9/16; background: #eee; border-radius: 12px; display:flex; align-items:center; justify-content:center; color:#888;">미리보기 자리</div>
-        <h2>출력 준비 중</h2>
-        <p>여러 영상을 하나로 합치는 기능은 다음 단계에서 지원됩니다.</p>
-        <button class="btn-primary" style="width: auto; padding: 10px 24px;" onclick="showToast('준비 중인 기능입니다.')">다운로드</button>
+      <div class="preview-screen">
+        <video id="final-video-player" class="preview-video" controls playsinline></video>
+        <div class="preview-actions">
+          <button class="btn-primary" onclick="downloadFinalVideo()">기기에 다운로드</button>
+          <button class="btn-secondary" style="background:#333;" onclick="navigate('project')">프로젝트로 돌아가기</button>
+        </div>
       </div>
     </div>
 
@@ -743,33 +801,29 @@
         <div style="font-size:16px; font-weight:700;">설정</div>
         <div></div>
       </header>
-      <div class="placeholder-view" style="align-items: flex-start; text-align: left; padding: 20px;">
-        <h3 style="margin-bottom: 8px;">minivlog v0.2</h3>
-        <p style="margin-bottom: 20px;">모바일 브라우저 기반의 개인 영상 기록 도구입니다.</p>
-        <hr style="width:100%; border:0; border-top:1px solid var(--border-color); margin-bottom: 20px;">
-        <h4 style="margin-bottom: 8px;">저장소 안내</h4>
-        <p style="margin-bottom: 20px;">영상 데이터는 브라우저의 IndexedDB에 저장됩니다. 브라우저 캐시 삭제 시 데이터가 소실될 수 있으니 주의하세요.</p>
-        <h4 style="margin-bottom: 8px;">원본 영상 관리</h4>
-        <p>향후 대용량 영상 백업 및 내보내기 기능이 추가될 예정입니다.</p>
+      <div class="editor-container" style="gap:16px;">
+        <h3>minivlog v0.3</h3>
+        <p style="font-size:13px; color:var(--sub-text);">모바일 브라우저 기반 개인 영상 기록 및 편집 도구</p>
+        <hr style="border:0; border-top:1px solid var(--border-color);">
+        <h4>저장 공간 현황</h4>
+        <p id="storage-info" style="font-size:13px; color:var(--sub-text);">IndexedDB를 통해 안전하게 저장됩니다.</p>
       </div>
     </div>
 
-  </div> <!-- End #app -->
+  </div>
 
   <!-- Modals -->
-  <!-- Project Create / Edit Modal -->
   <div id="modal-project" class="modal-backdrop">
     <div class="modal-box">
       <div id="modal-project-title" class="modal-title">새 프로젝트 만들기</div>
       <input type="text" id="modal-project-input" class="modal-input" placeholder="프로젝트 이름 입력">
       <div class="modal-btns">
         <button class="btn-cancel" onclick="closeModal('modal-project')">취소</button>
-        <button class="btn-confirm" id="modal-project-confirm" onclick="submitProjectModal()">확인</button>
+        <button class="btn-confirm" onclick="submitProjectModal()">확인</button>
       </div>
     </div>
   </div>
 
-  <!-- Shoot Project Selector Modal -->
   <div id="modal-shoot-selector" class="modal-backdrop">
     <div class="modal-box">
       <div class="modal-title">촬영할 프로젝트 선택</div>
@@ -781,7 +835,6 @@
     </div>
   </div>
 
-  <!-- Delete Confirm Modal -->
   <div id="modal-delete" class="modal-backdrop">
     <div class="modal-box">
       <div class="modal-title">프로젝트 삭제</div>
@@ -793,43 +846,45 @@
     </div>
   </div>
 
+  <!-- Render Progress Modal -->
+  <div id="modal-render" class="modal-backdrop">
+    <div class="modal-box" id="render-progress-box">
+      <div class="modal-title">영상 제작 중...</div>
+      <p id="render-status-text" style="font-size:13px; color:var(--sub-text);">영상을 합치고 있습니다 (0%)</p>
+      <div class="progress-bar-container">
+        <div id="render-progress-fill" class="progress-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast">알림 메시지</div>
 
   <script>
-    /* --- State & IndexedDB Setup --- */
     let projects = [];
     let currentProjectId = null;
     let currentVideoId = null;
-    let editingProjectId = null;
-    let projectModalMode = 'create'; // 'create' or 'edit'
+    let projectModalMode = 'create';
 
     let db = null;
     const DB_NAME = 'minivlog_db';
     const DB_VERSION = 1;
 
-    // Camera & MediaRecorder vars
     let mediaStream = null;
     let mediaRecorder = null;
     let recordedChunks = [];
     let recordTimerInterval = null;
     let recordSeconds = 0;
-    let activeCameraMode = 'free'; // 'free', '3', '5', '10'
-    let currentFacingMode = 'environment'; // 'user' or 'environment'
+    let activeCameraMode = 'free';
+    let currentFacingMode = 'environment';
     let recordedBlobUrl = null;
     let pendingRecordedBlob = null;
+    let finalStitchedBlob = null;
 
-    // Initialize IndexedDB
     function initDB() {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onerror = (e) => {
-          console.error("IndexedDB error:", e);
-          reject("저장소 초기화 실패");
-        };
-        request.onsuccess = (e) => {
-          db = e.target.result;
-          resolve(db);
-        };
+        request.onerror = (e) => reject("저장소 초기화 실패");
+        request.onsuccess = (e) => { db = e.target.result; resolve(db); };
         request.onupgradeneeded = (e) => {
           const database = e.target.result;
           if (!database.objectStoreNames.contains('videos')) {
@@ -840,17 +895,11 @@
       });
     }
 
-    // App Initialization
     window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await initDB();
-      } catch (err) {
-        showToast("오류: " + err);
-      }
+      try { await initDB(); } catch(err) { showToast(err); }
       loadProjectsFromLocalStorage();
       renderHomeProjects();
 
-      // Setup camera mode buttons
       document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -860,21 +909,21 @@
       });
     });
 
-    // LocalStorage for Projects Metadata
     function loadProjectsFromLocalStorage() {
       const saved = localStorage.getItem('minivlog_projects');
       if (saved) {
         try { projects = JSON.parse(saved); } catch(e) { projects = []; }
-      } else {
-        projects = [];
-      }
+      } else { projects = []; }
     }
 
     function saveProjectsToLocalStorage() {
       localStorage.setItem('minivlog_projects', JSON.stringify(projects));
     }
 
-    // Navigation
+    function getCurrentProject() {
+      return projects.find(p => p.id === currentProjectId);
+    }
+
     function navigate(viewName) {
       if (viewName !== 'camera' && viewName !== 'preview') {
         stopCameraStream();
@@ -882,9 +931,12 @@
       document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
       const target = document.getElementById(`view-${viewName}`);
       if (target) target.classList.add('active');
+
+      if (viewName === 'editor' && currentProjectId) {
+        loadEditorSettings();
+      }
     }
 
-    // Toast Notification
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.innerText = msg;
@@ -892,7 +944,6 @@
       setTimeout(() => t.classList.remove('show'), 2500);
     }
 
-    // Modals helper
     function closeModal(modalId) {
       document.getElementById(modalId).classList.remove('active');
     }
@@ -905,21 +956,18 @@
         grid.innerHTML = `<div class="empty-state">생성된 프로젝트가 없습니다.<br>새 프로젝트를 만들어 시작하세요.</div>`;
         return;
       }
-
-      // Sort by lastModified desc
       const sorted = [...projects].sort((a, b) => b.lastModified - a.lastModified);
       sorted.forEach(p => {
         const card = document.createElement('div');
         card.className = 'project-card';
         card.onclick = () => openProject(p.id);
-
         const timeStr = new Date(p.lastModified).toLocaleDateString();
         card.innerHTML = `
           <div class="project-thumb"><span>🎬 썸네일</span></div>
           <div class="project-info">
             <div class="project-name">${escapeHtml(p.name)}</div>
             <div class="project-meta">
-              <span>영상 ${p.videoCount || 0}개</span>
+              <span>영상 ${p.videoOrder ? p.videoOrder.length : 0}개</span>
               <span>${timeStr}</span>
             </div>
           </div>
@@ -938,7 +986,7 @@
 
     function openEditProjectModal() {
       projectModalMode = 'edit';
-      const p = projects.find(item => item.id === currentProjectId);
+      const p = getCurrentProject();
       if (!p) return;
       document.getElementById('modal-project-title').innerText = "프로젝트 이름 변경";
       document.getElementById('modal-project-input').value = p.name;
@@ -947,12 +995,8 @@
     }
 
     function submitProjectModal() {
-      const input = document.getElementById('modal-project-input');
-      const val = input.value.trim();
-      if (!val) {
-        showToast("프로젝트 이름을 입력해주세요.");
-        return;
-      }
+      const val = document.getElementById('modal-project-input').value.trim();
+      if (!val) { showToast("이름을 입력해주세요."); return; }
 
       if (projectModalMode === 'create') {
         const newProj = {
@@ -960,7 +1004,9 @@
           name: val,
           createdAt: Date.now(),
           lastModified: Date.now(),
-          videoCount: 0
+          videoOrder: [],
+          videoMeta: {}, // { vid: { subtitle, audioMuted, createdAt } }
+          settings: { titleUse: false, titleText: '', titleDuration: 3, showTimestamp: true }
         };
         projects.push(newProj);
         saveProjectsToLocalStorage();
@@ -968,7 +1014,7 @@
         renderHomeProjects();
         openProject(newProj.id);
       } else {
-        const p = projects.find(item => item.id === currentProjectId);
+        const p = getCurrentProject();
         if (p) {
           p.name = val;
           p.lastModified = Date.now();
@@ -987,12 +1033,7 @@
     async function executeDeleteProject() {
       closeModal('modal-delete');
       if (!currentProjectId) return;
-
-      // Delete associated videos from IndexedDB
-      try {
-        await deleteVideosOfProject(currentProjectId);
-      } catch(e) { console.error(e); }
-
+      try { await deleteVideosOfProject(currentProjectId); } catch(e) {}
       projects = projects.filter(p => p.id !== currentProjectId);
       saveProjectsToLocalStorage();
       currentProjectId = null;
@@ -1003,19 +1044,15 @@
 
     async function openProject(id) {
       currentProjectId = id;
-      const p = projects.find(item => item.id === id);
+      const p = getCurrentProject();
       if (!p) return;
       document.getElementById('current-project-title').innerText = p.name;
       navigate('project');
       await renderProjectVideos(id);
     }
 
-    /* --- Shoot Project Selector --- */
     function openShootProjectSelector() {
-      if (projects.length === 0) {
-        openCreateProjectModal();
-        return;
-      }
+      if (projects.length === 0) { openCreateProjectModal(); return; }
       const listEl = document.getElementById('shoot-selector-list');
       listEl.innerHTML = '';
       projects.forEach(p => {
@@ -1042,14 +1079,11 @@
     }
 
     function startShootingCurrentProject() {
-      if (!currentProjectId) {
-        openShootProjectSelector();
-        return;
-      }
+      if (!currentProjectId) { openShootProjectSelector(); return; }
       startCamera();
     }
 
-    /* --- Camera & Recording Logic --- */
+    /* --- Camera & Recording --- */
     async function startCamera() {
       navigate('camera');
       recordedChunks = [];
@@ -1059,57 +1093,38 @@
       timerEl.classList.remove('show');
 
       try {
-        const constraints = {
-          audio: true,
-          video: { facingMode: currentFacingMode, width: { ideal: 1080 }, height: { ideal: 1920 } }
-        };
+        const constraints = { audio: true, video: { facingMode: currentFacingMode, width: { ideal: 1080 }, height: { ideal: 1920 } } };
         mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        const videoEl = document.getElementById('camera-preview');
-        videoEl.srcObject = mediaStream;
+        document.getElementById('camera-preview').srcObject = mediaStream;
       } catch (err) {
-        console.error("Camera access error:", err);
-        showToast("카메라 권한을 허용해주세요.");
+        showToast("카메라 권한을 확인해주세요.");
         navigate('home');
       }
     }
 
     function stopCameraStream() {
       if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream.getTracks().forEach(t => t.stop());
         mediaStream = null;
       }
-      if (recordTimerInterval) {
-        clearInterval(recordTimerInterval);
-        recordTimerInterval = null;
-      }
+      if (recordTimerInterval) { clearInterval(recordTimerInterval); recordTimerInterval = null; }
     }
 
     function closeCamera() {
       stopCameraStream();
-      if (currentProjectId) {
-        navigate('project');
-      } else {
-        navigate('home');
-      }
+      if (currentProjectId) navigate('project'); else navigate('home');
     }
 
     async function switchCamera() {
       currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
       stopCameraStream();
       try {
-        const constraints = {
-          audio: true,
-          video: { facingMode: currentFacingMode }
-        };
-        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: currentFacingMode } });
         document.getElementById('camera-preview').srcObject = mediaStream;
-      } catch (e) {
-        showToast("카메라 전환 실패");
-      }
+      } catch (e) { showToast("카메라 전환 실패"); }
     }
 
     function toggleRecording() {
-      const shutterBtn = document.getElementById('shutter-btn');
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         startRecording();
       } else {
@@ -1121,33 +1136,21 @@
       recordedChunks = [];
       try {
         let options = { mimeType: 'video/webm;codecs=vp9,opus' };
-        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-          options = { mimeType: 'video/webm' };
-          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-            options = {}; // browser default
-          }
-        }
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm' };
 
         mediaRecorder = new MediaRecorder(mediaStream, options);
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-        };
+        mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
         mediaRecorder.onstop = () => {
           const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' });
           pendingRecordedBlob = blob;
           recordedBlobUrl = URL.createObjectURL(blob);
-          
           stopCameraStream();
-          
-          // Go to preview
-          const previewPlayer = document.getElementById('preview-video-player');
-          previewPlayer.src = recordedBlobUrl;
+          document.getElementById('preview-video-player').src = recordedBlobUrl;
           navigate('preview');
         };
 
         mediaRecorder.start();
         document.getElementById('shutter-btn').classList.add('recording');
-        
         recordSeconds = 0;
         const timerEl = document.getElementById('rec-timer');
         timerEl.classList.add('show');
@@ -1159,30 +1162,17 @@
           let sec = (recordSeconds % 60).toString().padStart(2, '0');
           timerEl.innerText = `${min}:${sec}`;
 
-          // Timed modes check
-          if (activeCameraMode !== 'free' && recordSeconds >= parseInt(activeCameraMode)) {
-            stopRecording();
-          }
-          // Free mode max 60s
-          if (activeCameraMode === 'free' && recordSeconds >= 60) {
-            stopRecording();
-          }
+          if (activeCameraMode !== 'free' && recordSeconds >= parseInt(activeCameraMode)) stopRecording();
+          if (activeCameraMode === 'free' && recordSeconds >= 60) stopRecording();
         }, 1000);
-
-      } catch (e) {
-        console.error("Recording error:", e);
-        showToast("녹화를 시작할 수 없습니다.");
-      }
+      } catch (e) { showToast("녹화 시작 오류"); }
     }
 
     function stopRecording() {
       if (mediaRecorder && mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
         document.getElementById('shutter-btn').classList.remove('recording');
-        if (recordTimerInterval) {
-          clearInterval(recordTimerInterval);
-          recordTimerInterval = null;
-        }
+        if (recordTimerInterval) { clearInterval(recordTimerInterval); recordTimerInterval = null; }
       }
     }
 
@@ -1192,177 +1182,417 @@
       startCamera();
     }
 
-    /* --- IndexedDB Video Storage & Retrieval --- */
+    /* --- IndexedDB & Video Management --- */
     function saveVideoToDB(projectId, blob) {
       return new Promise((resolve, reject) => {
         if (!db) return reject("DB 연결 안됨");
         const transaction = db.transaction(['videos'], 'readwrite');
         const store = transaction.objectStore('videos');
         const videoId = 'vid_' + Date.now();
-        const record = {
-          id: videoId,
-          projectId: projectId,
-          blob: blob,
-          createdAt: Date.now()
-        };
-        const request = store.add(record);
-        request.onsuccess = () => resolve(videoId);
-        request.onerror = (e) => reject(e.target.error);
+        const record = { id: videoId, projectId, blob, createdAt: Date.now() };
+        store.add(record).onsuccess = () => resolve(videoId);
+        store.onerror = (e) => reject(e.target.error);
       });
     }
 
     function getVideosOfProject(projectId) {
       return new Promise((resolve, reject) => {
         if (!db) return resolve([]);
-        const transaction = db.transaction(['videos'], 'readonly');
-        const store = transaction.objectStore('videos');
-        const index = store.index('projectId');
-        const request = index.getAll(projectId);
-        request.onsuccess = (e) => resolve(e.target.result || []);
-        request.onerror = (e) => reject(e.target.error);
+        const store = db.transaction(['videos'], 'readonly').objectStore('videos');
+        store.index('projectId').getAll(projectId).onsuccess = (e) => resolve(e.target.result || []);
       });
     }
 
     function deleteVideoFromDB(videoId) {
       return new Promise((resolve, reject) => {
-        if (!db) return reject("DB 연결 안됨");
-        const transaction = db.transaction(['videos'], 'readwrite');
-        const store = transaction.objectStore('videos');
-        const request = store.delete(videoId);
-        request.onsuccess = () => resolve();
-        request.onerror = (e) => reject(e.target.error);
+        const store = db.transaction(['videos'], 'readwrite').objectStore('videos');
+        store.delete(videoId).onsuccess = () => resolve();
       });
     }
 
     function deleteVideosOfProject(projectId) {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const vids = await getVideosOfProject(projectId);
-          const transaction = db.transaction(['videos'], 'readwrite');
-          const store = transaction.objectStore('videos');
-          vids.forEach(v => store.delete(v.id));
-          transaction.oncomplete = () => resolve();
-          transaction.onerror = (e) => reject(e);
-        } catch (e) { reject(e); }
+      return new Promise(async (resolve) => {
+        const vids = await getVideosOfProject(projectId);
+        const store = db.transaction(['videos'], 'readwrite').objectStore('videos');
+        vids.forEach(v => store.delete(v.id));
+        resolve();
       });
     }
 
     async function renderProjectVideos(projectId) {
       const grid = document.getElementById('video-grid');
       grid.innerHTML = '';
-      try {
-        const vids = await getVideosOfProject(projectId);
-        // Update project video count
-        const p = projects.find(item => item.id === projectId);
-        if (p) {
-          p.videoCount = vids.length;
-          saveProjectsToLocalStorage();
+      const vids = await getVideosOfProject(projectId);
+      const p = getCurrentProject();
+      if (!p) return;
+
+      if (!p.videoOrder) p.videoOrder = [];
+      vids.forEach(v => {
+        if (!p.videoOrder.includes(v.id)) p.videoOrder.push(v.id);
+        if (!p.videoMeta[v.id]) {
+          p.videoMeta[v.id] = { subtitle: '', audioMuted: false, createdAt: v.createdAt };
         }
+      });
+      p.videoOrder = p.videoOrder.filter(id => vids.some(v => v.id === id));
+      saveProjectsToLocalStorage();
 
-        if (vids.length === 0) {
-          grid.innerHTML = `<div class="empty-state" style="grid-column:span 2;">저장된 영상이 없습니다.<br>촬영하기를 눌러 기록을 시작하세요.</div>`;
-          return;
-        }
-
-        vids.forEach((v, idx) => {
-          const card = document.createElement('div');
-          card.className = 'video-item-card';
-          
-          const blobUrl = URL.createObjectURL(v.blob);
-          const timeStr = new Date(v.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-          card.innerHTML = `
-            <div class="video-thumb-box" onclick="playVideo('${v.id}')">
-              <video src="${blobUrl}" preload="metadata"></video>
-            </div>
-            <div class="video-item-info">
-              <span class="video-item-title">영상 #${idx + 1} (${timeStr})</span>
-              <button class="video-item-del" onclick="removeVideo('${v.id}')">삭제</button>
-            </div>
-          `;
-          grid.appendChild(card);
-        });
-      } catch (e) {
-        console.error(e);
+      if (p.videoOrder.length === 0) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:span 2;">저장된 영상이 없습니다.</div>`;
+        return;
       }
+
+      p.videoOrder.forEach((vidId, idx) => {
+        const v = vids.find(item => item.id === vidId);
+        if (!v) return;
+        const card = document.createElement('div');
+        card.className = 'video-item-card';
+        const blobUrl = URL.createObjectURL(v.blob);
+        const timeStr = new Date(v.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        card.innerHTML = `
+          <div class="video-thumb-box" onclick="playVideo('${v.id}')">
+            <video src="${blobUrl}" preload="metadata"></video>
+          </div>
+          <div class="video-item-info">
+            <div class="video-item-row">
+              <span class="video-item-title">#${idx + 1} (${timeStr})</span>
+              <button class="mini-btn danger" onclick="removeVideo('${v.id}')">삭제</button>
+            </div>
+            <div class="video-item-row">
+              <div class="video-item-btns">
+                <button class="mini-btn" onclick="moveVideoOrder('${v.id}', -1)">▲ 위로</button>
+                <button class="mini-btn" onclick="moveVideoOrder('${v.id}', 1)">▼ 아래로</button>
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
     }
 
     async function saveVideoAction(continueShooting) {
       if (!pendingRecordedBlob || !currentProjectId) return;
       try {
-        await saveVideoToDB(currentProjectId, pendingRecordedBlob);
-        
-        // Update project lastModified
-        const p = projects.find(item => item.id === currentProjectId);
+        const vidId = await saveVideoToDB(currentProjectId, pendingRecordedBlob);
+        const p = getCurrentProject();
         if (p) {
+          if (!p.videoOrder) p.videoOrder = [];
+          p.videoOrder.push(vidId);
+          if (!p.videoMeta) p.videoMeta = {};
+          p.videoMeta[vidId] = { subtitle: '', audioMuted: false, createdAt: Date.now() };
           p.lastModified = Date.now();
           saveProjectsToLocalStorage();
         }
-
         showToast("영상이 저장되었습니다.");
         pendingRecordedBlob = null;
-
-        if (continueShooting) {
-          startCamera();
-        } else {
-          openProject(currentProjectId);
-        }
-      } catch (e) {
-        console.error(e);
-        showToast("저장 실패: 공간 부족 또는 오류 발생");
-      }
+        if (continueShooting) startCamera(); else openProject(currentProjectId);
+      } catch (e) { showToast("저장 실패"); }
     }
 
-    async function saveVideoAndReturnProject() {
-      await saveVideoAction(false);
-    }
+    function saveVideoAndReturnProject() { saveVideoAction(false); }
 
     async function removeVideo(videoId) {
       if (!confirm("정말 이 영상을 삭제하시겠습니까?")) return;
-      try {
-        await deleteVideoFromDB(videoId);
-        showToast("영상이 삭제되었습니다.");
-        await renderProjectVideos(currentProjectId);
-        renderHomeProjects();
-      } catch (e) {
-        showToast("삭제 실패");
+      await deleteVideoFromDB(videoId);
+      const p = getCurrentProject();
+      if (p) {
+        p.videoOrder = p.videoOrder.filter(id => id !== videoId);
+        delete p.videoMeta[videoId];
+        p.lastModified = Date.now();
+        saveProjectsToLocalStorage();
       }
+      showToast("영상이 삭제되었습니다.");
+      await renderProjectVideos(currentProjectId);
+      renderHomeProjects();
+    }
+
+    async function moveVideoOrder(videoId, direction) {
+      const p = getCurrentProject();
+      if (!p) return;
+      const idx = p.videoOrder.indexOf(videoId);
+      if (idx < 0) return;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= p.videoOrder.length) return;
+
+      const temp = p.videoOrder[idx];
+      p.videoOrder[idx] = p.videoOrder[targetIdx];
+      p.videoOrder[targetIdx] = temp;
+      saveProjectsToLocalStorage();
+      await renderProjectVideos(currentProjectId);
     }
 
     async function playVideo(videoId) {
-      currentVideoId = videoId;
+      const store = db.transaction(['videos'], 'readonly').objectStore('videos');
+      store.get(videoId).onsuccess = (e) => {
+        const v = e.target.result;
+        if (v) {
+          document.getElementById('active-video-player').src = URL.createObjectURL(v.blob);
+          navigate('player');
+        }
+      };
+    }
+
+    /* --- Editor Settings & UI --- */
+    function toggleAccordion(header) {
+      header.parentElement.classList.toggle('open');
+    }
+
+    async function loadEditorSettings() {
+      const p = getCurrentProject();
+      if (!p) return;
+
+      if (!p.settings) {
+        p.settings = { titleUse: false, titleText: '', titleDuration: 3, showTimestamp: true };
+      }
+      document.getElementById('setting-title-use').checked = !!p.settings.titleUse;
+      document.getElementById('setting-title-text').value = p.settings.titleText || '';
+      document.getElementById('setting-title-duration').value = p.settings.titleDuration || 3;
+      document.getElementById('setting-show-timestamp').checked = p.settings.showTimestamp !== false;
+
+      // Render order & meta inputs in editor
+      const orderList = document.getElementById('editor-video-order-list');
+      const subList = document.getElementById('editor-subtitles-list');
+      const audioList = document.getElementById('editor-audio-list');
+
+      orderList.innerHTML = '';
+      subList.innerHTML = '';
+      audioList.innerHTML = '';
+
+      const vids = await getVideosOfProject(currentProjectId);
+      if (!p.videoOrder) p.videoOrder = vids.map(v => v.id);
+
+      if (p.videoOrder.length === 0) {
+        orderList.innerHTML = `<span style="color:var(--sub-text);">영상이 없습니다.</span>`;
+        subList.innerHTML = `<span style="color:var(--sub-text);">영상이 없습니다.</span>`;
+        audioList.innerHTML = `<span style="color:var(--sub-text);">영상이 없습니다.</span>`;
+        return;
+      }
+
+      p.videoOrder.forEach((vidId, idx) => {
+        const v = vids.find(item => item.id === vidId);
+        if (!v) return;
+        if (!p.videoMeta[vidId]) p.videoMeta[vidId] = { subtitle: '', audioMuted: false, createdAt: v.createdAt };
+        const meta = p.videoMeta[vidId];
+
+        // Order item
+        const ordDiv = document.createElement('div');
+        ordDiv.className = 'video-item-row';
+        ordDiv.innerHTML = `
+          <span>#${idx+1} 영상</span>
+          <div class="video-item-btns">
+            <button class="mini-btn" onclick="moveVideoOrderEditor('${vidId}', -1)">▲</button>
+            <button class="mini-btn" onclick="moveVideoOrderEditor('${vidId}', 1)">▼</button>
+          </div>
+        `;
+        orderList.appendChild(ordDiv);
+
+        // Subtitle item
+        const subDiv = document.createElement('div');
+        subDiv.className = 'form-group';
+        subDiv.innerHTML = `
+          <label>#${idx+1} 자막 내용</label>
+          <input type="text" class="form-input sub-input" data-id="${vidId}" value="${escapeHtml(meta.subtitle || '')}" placeholder="자막 입력" oninput="saveMetaInput()">
+        `;
+        subList.appendChild(subDiv);
+
+        // Audio item
+        const audDiv = document.createElement('div');
+        audDiv.className = 'video-item-row';
+        audDiv.innerHTML = `
+          <span>#${idx+1} 원본 소리 켜기</span>
+          <input type="checkbox" data-id="${vidId}" class="audio-check" ${!meta.audioMuted ? 'checked' : ''} onchange="saveMetaInput()">
+        `;
+        audioList.appendChild(audDiv);
+      });
+    }
+
+    async function moveVideoOrderEditor(vidId, dir) {
+      await moveVideoOrder(vidId, dir);
+      loadEditorSettings();
+    }
+
+    function saveProjectSettings() {
+      const p = getCurrentProject();
+      if (!p) return;
+      p.settings.titleUse = document.getElementById('setting-title-use').checked;
+      p.settings.titleText = document.getElementById('setting-title-text').value;
+      p.settings.titleDuration = parseInt(document.getElementById('setting-title-duration').value) || 3;
+      p.settings.showTimestamp = document.getElementById('setting-show-timestamp').checked;
+      saveProjectsToLocalStorage();
+    }
+
+    function saveMetaInput() {
+      const p = getCurrentProject();
+      if (!p) return;
+      document.querySelectorAll('.sub-input').forEach(input => {
+        const id = input.getAttribute('data-id');
+        if (p.videoMeta[id]) p.videoMeta[id].subtitle = input.value;
+      });
+      document.querySelectorAll('.audio-check').forEach(chk => {
+        const id = chk.getAttribute('data-id');
+        if (p.videoMeta[id]) p.videoMeta[id].audioMuted = !chk.checked;
+      });
+      saveProjectsToLocalStorage();
+    }
+
+    /* --- Client-Side Video Stitching & Export --- */
+    async function startStitchingAndExport() {
+      const p = getCurrentProject();
+      if (!p || !p.videoOrder || p.videoOrder.length === 0) {
+        showToast("합칠 영상이 없습니다.");
+        return;
+      }
+
+      document.getElementById('modal-render').classList.add('active');
+      const progressFill = document.getElementById('render-progress-fill');
+      const statusText = document.getElementById('render-status-text');
+      progressFill.style.width = '10%';
+      statusText.innerText = "영상 데이터를 불러오는 중...";
+
       try {
-        const transaction = db.transaction(['videos'], 'readonly');
-        const store = transaction.objectStore('videos');
-        const request = store.get(videoId);
-        request.onsuccess = (e) => {
-          const v = e.target.result;
-          if (v) {
-            const url = URL.createObjectURL(v.blob);
-            const player = document.getElementById('active-video-player');
-            player.src = url;
-            navigate('player');
-          }
-        };
+        const vids = await getVideosOfProject(currentProjectId);
+        const orderedVids = p.videoOrder.map(id => vids.find(v => v.id === id)).filter(Boolean);
+
+        // Setup Canvas (1080x1920)
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 1920;
+        const ctx = canvas.getContext('2d');
+
+        const stream = canvas.captureStream(30);
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const dest = audioCtx.createMediaStreamDestination();
+
+        let options = { mimeType: 'video/webm;codecs=vp9,opus' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm' };
+
+        // Combine video stream + audio destination stream
+        const combinedStream = new MediaStream([
+          ...stream.getVideoTracks(),
+          ...dest.stream.getAudioTracks()
+        ]);
+
+        const recorder = new MediaRecorder(combinedStream, options);
+        let chunks = [];
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        
+        const renderPromise = new Promise((resolve) => {
+          recorder.onstop = () => {
+            finalStitchedBlob = new Blob(chunks, { type: 'video/webm' });
+            resolve();
+          };
+        });
+
+        recorder.start();
+        progressFill.style.width = '30%';
+        statusText.innerText = "렌더링 진행 중...";
+
+        // Helper to play & draw video frames
+        for (let i = 0; i < orderedVids.length; i++) {
+          const vData = orderedVids[i];
+          const meta = p.videoMeta[vData.id] || {};
+          const blobUrl = URL.createObjectURL(vData.blob);
+          
+          await new Promise((resolveVideo) => {
+            const vidEl = document.createElement('video');
+            vidEl.src = blobUrl;
+            vidEl.muted = meta.audioMuted;
+            vidEl.playsInline = true;
+
+            vidEl.onloadedmetadata = () => {
+              let sourceNode = null;
+              if (!meta.audioMuted && audioCtx) {
+                try {
+                  sourceNode = audioCtx.createMediaElementSource(vidEl);
+                  sourceNode.connect(dest);
+                  sourceNode.connect(audioCtx.destination);
+                } catch(e) {}
+              }
+
+              vidEl.play();
+              let startTime = performance.now();
+              const durationMs = vidEl.duration * 1000;
+
+              function drawFrame(now) {
+                if (vidEl.ended || vidEl.paused) {
+                  resolveVideo();
+                  return;
+                }
+
+                // Draw background/video
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, 1080, 1920);
+
+                // Fit cover in 1080x1920
+                const vw = vidEl.videoWidth || 1080;
+                const vh = vidEl.videoHeight || 1920;
+                const scale = Math.max(1080 / vw, 1920 / vh);
+                const sw = vw * scale;
+                const sh = vh * scale;
+                const sx = (1080 - sw) / 2;
+                const sy = (1920 - sh) / 2;
+
+                ctx.drawImage(vidEl, sx, sy, sw, sh);
+
+                // Draw Timestamp
+                if (p.settings.showTimestamp && meta.createdAt) {
+                  const timeStr = new Date(meta.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                  ctx.fillRect(50, 80, 160, 50);
+                  ctx.fillStyle = '#ffffff';
+                  ctx.font = 'bold 24px sans-serif';
+                  ctx.fillText(timeStr, 75, 113);
+                }
+
+                // Draw Subtitle
+                if (meta.subtitle) {
+                  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                  ctx.font = 'bold 42px sans-serif';
+                  ctx.textAlign = 'center';
+                  const textWidth = ctx.measureText(meta.subtitle).width;
+                  ctx.fillRect(540 - textWidth/2 - 30, 1700 - 50, textWidth + 60, 80);
+
+                  ctx.fillStyle = '#ffffff';
+                  ctx.fillText(meta.subtitle, 540, 1750);
+                }
+
+                progressFill.style.width = Math.min(90, 30 + Math.floor(((i + (vidEl.currentTime / vidEl.duration)) / orderedVids.length) * 60)) + '%';
+                requestAnimationFrame(drawFrame);
+              }
+              requestAnimationFrame(drawFrame);
+            };
+          });
+        }
+
+        recorder.stop();
+        await renderPromise;
+
+        progressFill.style.width = '100%';
+        statusText.innerText = "완료!";
+        setTimeout(() => {
+          closeModal('modal-render');
+          document.getElementById('final-video-player').src = URL.createObjectURL(finalStitchedBlob);
+          navigate('export');
+        }, 500);
+
       } catch (e) {
-        showToast("영상을 불러올 수 없습니다.");
+        closeModal('modal-render');
+        showToast("렌더링 오류 발생");
       }
     }
 
-    function openVideoEditor() {
-      showToast("개별 영상 편집 기능은 준비 중입니다.");
-    }
-
-    /* --- Helper Functions --- */
-    function toggleAccordion(header) {
-      const item = header.parentElement;
-      item.classList.toggle('open');
+    function downloadFinalVideo() {
+      if (!finalStitchedBlob) { showToast("다운로드할 영상이 없습니다."); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(finalStitchedBlob);
+      a.download = `minivlog_${Date.now()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
 
     function escapeHtml(str) {
-      return str.replace(/[&<>'"]/g, 
-        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag)
-      );
+      return (str || '').replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
     }
   </script>
 </body>
